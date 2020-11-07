@@ -1,37 +1,42 @@
 import sounddevice as sd
-import wave
 import queue
 import sys
 import time
 import numpy as np
 from src.MAAP.native.AudioSignal import AudioSignal
 
-
-
-
 class AudioReceiverOutputQueue(queue.Queue):
     """"""
-
     def __init__(self, maxsize):
         """Constructor for AudioReceiverOutputQeueu"""
         super().__init__(maxsize)
 
+
+    def _concat_signal_elements(self):
+        list_audio = list(self.queue)
+        mega_audio_data = list()
+        for idx, audio_signal in enumerate(list_audio):
+            mega_audio_data.extend(audio_signal.y)
+        mega_audio = AudioSignal(np.array(mega_audio_data), list_audio[0].sr)
+        return mega_audio
+
     def play_queue(self, concat_elements=True):
 
-        list_audio = list(self.queue)
         if concat_elements:
-            mega_audio_data = list()
-            for idx, audio_signal in enumerate(list_audio):
-                mega_audio_data.extend(audio_signal.y)
-            mega_audio = AudioSignal(np.array(mega_audio_data), list_audio[0].sr)
+            mega_audio = self._concat_signal_elements()
             print("Playing Mega Audio")
             print("Duration", mega_audio.get_duration())
             mega_audio.play_audio()
         else:
+            list_audio = list(self.queue)
             for idx, audio_signal in enumerate(list_audio):
                 print("Playing signal nr", idx)
                 print("Duration", audio_signal.get_duration())
                 audio_signal.play_audio()
+
+    def plot_queue_signal(self):
+        mega_audio = self._concat_signal_elements()
+        mega_audio.plot_signal()
 
 class AudioSampleBucket():
     """"""
@@ -93,7 +98,6 @@ class AudioReceiver():
                                             callback=callback,
                                             )
 
-
     def _get_input_stream_callback(self, mode=0):
 
 
@@ -146,7 +150,7 @@ class AudioReceiver():
             print("Capturing")
             self.is_capturing = True
             timeout_start = time.time()
-            while time.time() < timeout_start + 10: ##durante 60 segundos faz isto
+            while time.time() < timeout_start + 4:
                 # do whatever you do
                 time.sleep(segments_duration)
                 self._outputQueue.put(AudioSignal(self._data_samples_bucket.get_all_data(True), self.sr))
@@ -158,10 +162,11 @@ if __name__ == "__main__":
     audioReceiver = AudioReceiver()
 
     ##------------Test 1-------------
-
+    """
     audioReceiver.start_capture(2)
     audioReceiver._outputQueue.play_queue()
-
+    audioReceiver._outputQueue.plot_queue_signal()
+    """
 
     ##-----------Test 2-------------
     """
