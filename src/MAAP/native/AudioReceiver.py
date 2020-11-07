@@ -5,6 +5,7 @@ import time
 import numpy as np
 from src.MAAP.native.AudioSignal import AudioSignal
 
+
 class AudioReceiverOutputQueue(queue.Queue):
     """"""
     def __init__(self, maxsize):
@@ -70,6 +71,8 @@ class AudioSampleBucket():
 
 class AudioReceiver():
     """"""
+    STOP_CAPTURE_MODE = ["default","timeout"]
+    TIMEOUT_DURATION_DEFAULT = 3 # 3 seconds
 
     def __init__(self, channels=1, device_id=0):
         """Constructor for AudioReceiver"""
@@ -85,6 +88,8 @@ class AudioReceiver():
         self._input_stream = None
         self._outputQueue = None
 
+        self._stop_condition = None
+        self._stop_condition_params = None
 
     def _configure_input_stream(self, callback=None):
 
@@ -135,38 +140,78 @@ class AudioReceiver():
 
         return audio_signal_array
 
-    def start_capture(self, segments_duration=1, stop_condition=None, buffer_max_size=0):
+    def _set_and_check_stop_condition(self, stop_condition):
+        ## Check if stop conditions exists
+        if stop_condition in AudioReceiver.STOP_CAPTURE_MODE:
+            if stop_condition == "default":
+                self._stop_condition = "timeout"
+                return
+            else:
+                self._stop_condition = stop_condition
+                return
+        else:
+            raise Exception("The selected stop condition '{}' doest not exist. Select one of the following {}".format(
+                stop_condition, AudioReceiver.STOP_CAPTURE_MODE
+            ))
 
-        if not stop_condition:
-            stop_condition="default" ## for now is 30 seconds
+    def _set_and_check_stop_conditions_params(self, segments_duration, params):
 
+        stop_condition_params = dict()
+        if self._stop_condition == "timeout":
+            ## check conditions for timeout:
+            ## 1 - See if parameters exist
+            ## 2 - timeout_duration must be greater than twice of audio_segment
+            stop_condition_params["time_start"] = time.time()
+            if "timeout_duration" in params:
+                stop_condition_params["timeout_duration"] = params["timeout_duration"]
+            else:
+                stop_condition_params["timeout_duration"] = AudioReceiver.TIMEOUT_DURATION_DEFAULT
+            if stop_condition_params["timeout_duration"] < 2*segments_duration:
+                raise Exception("'Timeout duration' must be greater than the double of 'segments_duration'")
+
+        self._stop_condition_params = stop_condition_params
+
+    @staticmethod
+    def _get_keep_capturing_function(stop_condition):
+
+        def is_inside_timeout(params):
+            return time.time() < params["time_start"] + params["timeout_duration"]
+
+        ## if stop_condition is timeout
+        if stop_condition == "timeout":
+            return is_inside_timeout
+
+    def start_capture(self, stop_condition="default", segments_duration=1, buffer_max_size=0, **kargs):
+
+        ##set stops condition
+        self._set_and_check_stop_condition(stop_condition)
         ##initialization of output queue
         self._outputQueue = AudioReceiverOutputQueue(buffer_max_size)
-
         ##configures input stream
         self._configure_input_stream(self._get_input_stream_callback(0))
+        ##get params of stop condition
+        self._set_and_check_stop_conditions_params(segments_duration, kargs)
 
         with self._input_stream:
-            print("Capturing")
+            print("Capturing with stop condition '{}' and params {}".format(self._stop_condition, self._stop_condition_params) )
             self.is_capturing = True
-            timeout_start = time.time()
-            while time.time() < timeout_start + 4:
-                # do whatever you do
+            keep_capturing_function = self._get_keep_capturing_function(self._stop_condition)
+            while keep_capturing_function(self._stop_condition_params):
+                ## captures signal during 'segments_duration' seconds
                 time.sleep(segments_duration)
+                ## Crete a AudioSignal instance with the captured data and stores it in Queue.
                 self._outputQueue.put(AudioSignal(self._data_samples_bucket.get_all_data(True), self.sr))
-            self.is_capturing = False
-
 
 if __name__ == "__main__":
 
     audioReceiver = AudioReceiver()
 
     ##------------Test 1-------------
-    """
-    audioReceiver.start_capture(2)
+
+    audioReceiver.start_capture("timeout", 1, buffer_max_size=10)
     audioReceiver._outputQueue.play_queue()
     audioReceiver._outputQueue.plot_queue_signal()
-    """
+
 
     ##-----------Test 2-------------
     """
