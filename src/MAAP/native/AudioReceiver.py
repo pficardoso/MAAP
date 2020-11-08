@@ -3,8 +3,8 @@ import queue
 import sys
 import time
 import numpy as np
+import threading
 from src.MAAP.native.AudioSignal import AudioSignal
-
 
 class AudioReceiverOutputQueue(queue.Queue):
     """"""
@@ -169,17 +169,19 @@ class AudioReceiver():
             if stop_condition_params["timeout_duration"] < 2*segments_duration:
                 raise Exception("'Timeout duration' must be greater than the double of 'segments_duration'")
 
+
         self._stop_condition_params = stop_condition_params
 
     @staticmethod
-    def _get_keep_capturing_function(stop_condition):
+    def _get_keep_capturing_thread_function(stop_condition):
 
-        def is_inside_timeout(params):
-            return time.time() < params["time_start"] + params["timeout_duration"]
+        def timeout_thread_function(params):
+            while time.time() < params["time_start"] + params["timeout_duration"]:
+                pass
 
         ## if stop_condition is timeout
         if stop_condition == "timeout":
-            return is_inside_timeout
+            return timeout_thread_function
 
     def start_capture(self, stop_condition="default", segments_duration=1, buffer_max_size=0, **kargs):
 
@@ -189,14 +191,19 @@ class AudioReceiver():
         self._outputQueue = AudioReceiverOutputQueue(buffer_max_size)
         ##configures input stream
         self._configure_input_stream(self._get_input_stream_callback(0))
-        ##get params of stop condition
+        ##set params of stop condition
         self._set_and_check_stop_conditions_params(segments_duration, kargs)
+
+        ## configures thread that will check stop condition
+        keep_capturing_thread_function = self._get_keep_capturing_thread_function(self._stop_condition)
+        keep_capturing_thread = threading.Thread(target=keep_capturing_thread_function,
+                                                 args=(self._stop_condition_params,))
 
         with self._input_stream:
             print("Capturing with stop condition '{}' and params {}".format(self._stop_condition, self._stop_condition_params) )
             self.is_capturing = True
-            keep_capturing_function = self._get_keep_capturing_function(self._stop_condition)
-            while keep_capturing_function(self._stop_condition_params):
+            keep_capturing_thread.start()
+            while keep_capturing_thread.is_alive():
                 ## captures signal during 'segments_duration' seconds
                 time.sleep(segments_duration)
                 ## Crete a AudioSignal instance with the captured data and stores it in Queue.
@@ -208,7 +215,7 @@ if __name__ == "__main__":
 
     ##------------Test 1-------------
 
-    audioReceiver.start_capture("timeout", 1, buffer_max_size=10)
+    audioReceiver.start_capture("press_key", 1, buffer_max_size=50)
     audioReceiver._outputQueue.play_queue()
     audioReceiver._outputQueue.plot_queue_signal()
 
