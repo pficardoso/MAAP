@@ -71,7 +71,8 @@ class AudioSampleBucket():
 
 class AudioReceiver():
     """"""
-    STOP_CAPTURE_MODE = ["default","timeout"]
+
+    STOP_CAPTURE_MODE_LIST = ["default","timeout", "by_command"]
     TIMEOUT_DURATION_DEFAULT = 3 # 3 seconds
 
     def __init__(self, channels=1, device_id=0):
@@ -142,7 +143,7 @@ class AudioReceiver():
 
     def _set_and_check_stop_condition(self, stop_condition):
         ## Check if stop conditions exists
-        if stop_condition in AudioReceiver.STOP_CAPTURE_MODE:
+        if stop_condition in AudioReceiver.STOP_CAPTURE_MODE_LIST:
             if stop_condition == "default":
                 self._stop_condition = "timeout"
                 return
@@ -151,7 +152,7 @@ class AudioReceiver():
                 return
         else:
             raise Exception("The selected stop condition '{}' doest not exist. Select one of the following {}".format(
-                stop_condition, AudioReceiver.STOP_CAPTURE_MODE
+                stop_condition, AudioReceiver.STOP_CAPTURE_MODE_LIST
             ))
 
     def _set_and_check_stop_conditions_params(self, segments_duration, params):
@@ -179,19 +180,26 @@ class AudioReceiver():
             while time.time() < params["time_start"] + params["timeout_duration"]:
                 pass
 
+        def by_command_thread_function(params):
+            print("Write 'stop' to stop the process")
+            command_selected = False
+            while not command_selected:
+                val = input()
+                if val.strip() == "stop":
+                    command_selected = True
+
         ## if stop_condition is timeout
         if stop_condition == "timeout":
             return timeout_thread_function
 
+        if stop_condition == "by_command":
+            return by_command_thread_function
+
     def start_capture(self, stop_condition="default", segments_duration=1, buffer_max_size=0, **kargs):
 
-        ##set stops condition
         self._set_and_check_stop_condition(stop_condition)
-        ##initialization of output queue
         self._outputQueue = AudioReceiverOutputQueue(buffer_max_size)
-        ##configures input stream
         self._configure_input_stream(self._get_input_stream_callback(0))
-        ##set params of stop condition
         self._set_and_check_stop_conditions_params(segments_duration, kargs)
 
         ## configures thread that will check stop condition
@@ -208,6 +216,8 @@ class AudioReceiver():
                 time.sleep(segments_duration)
                 ## Crete a AudioSignal instance with the captured data and stores it in Queue.
                 self._outputQueue.put(AudioSignal(self._data_samples_bucket.get_all_data(True), self.sr))
+            ## the main process waits that keep_capturing_thread_runs
+            keep_capturing_thread.join()
 
 if __name__ == "__main__":
 
@@ -215,7 +225,7 @@ if __name__ == "__main__":
 
     ##------------Test 1-------------
 
-    audioReceiver.start_capture("press_key", 1, buffer_max_size=50)
+    audioReceiver.start_capture("by_command", 1, buffer_max_size=50, timeout_duration=5)
     audioReceiver._outputQueue.play_queue()
     audioReceiver._outputQueue.plot_queue_signal()
 
