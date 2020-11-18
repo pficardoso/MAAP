@@ -4,12 +4,20 @@ import sys
 import time
 import numpy as np
 import threading
+import warnings
 from src.MAAP.native.AudioSignal import AudioSignal
+
+
+warnings.simplefilter('always', UserWarning)
+
 
 class AudioReceiverOutputQueue(queue.Queue):
     """"""
     def __init__(self, maxsize):
-        """Constructor for AudioReceiverOutputQeueu"""
+        """
+
+        :param maxsize:
+        """
         super().__init__(maxsize)
 
 
@@ -215,7 +223,10 @@ class AudioReceiver():
                 ## captures signal during 'segments_duration' seconds
                 time.sleep(segments_duration)
                 ## Crete a AudioSignal instance with the captured data and stores it in Queue.
-                self._outputQueue.put(AudioSignal(self._data_samples_bucket.get_all_data(True), self.sr))
+                try:
+                    self._outputQueue.put(AudioSignal(self._data_samples_bucket.get_all_data(True), self.sr), block=False)
+                except queue.Full:
+                    warnings.warn("OutputQueue is full. AudioSignal entering on queue was deleted.")
             ## the main process waits that keep_capturing_thread_runs
             keep_capturing_thread.join()
 
@@ -225,7 +236,7 @@ if __name__ == "__main__":
 
     ##------------Test 1-------------
 
-    audioReceiver.start_capture("by_command", 1, buffer_max_size=50, timeout_duration=5)
+    audioReceiver.start_capture("by_command", 1, buffer_max_size=5, timeout_duration=5)
     audioReceiver._outputQueue.play_queue()
     audioReceiver._outputQueue.plot_queue_signal()
 
