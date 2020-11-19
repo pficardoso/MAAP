@@ -13,12 +13,13 @@ warnings.simplefilter('always', UserWarning)
 
 class AudioReceiverOutputQueue(queue.Queue):
     """"""
-    def __init__(self, maxsize):
+    def __init__(self, maxsize_seconds, segments_duration):
         """
 
         :param maxsize:
         """
-        super().__init__(maxsize)
+
+        super().__init__(maxsize_seconds/segments_duration)
 
 
     def _concat_signal_elements(self):
@@ -201,10 +202,10 @@ class AudioReceiver():
         if stop_condition == "by_command":
             return by_command_thread_function
 
-    def start_capture(self, stop_condition="default", segments_duration=1, buffer_max_size=0, **kargs):
+    def start_capture(self, stop_condition="default", segments_duration=1, buffer_size_seconds=0, **kargs):
 
         self._set_and_check_stop_condition(stop_condition)
-        self._outputQueue = AudioReceiverOutputQueue(buffer_max_size)
+        self._outputQueue = AudioReceiverOutputQueue(buffer_size_seconds, segments_duration)
         self._configure_input_stream()
         self._set_and_check_stop_conditions_params(segments_duration, kargs)
 
@@ -239,7 +240,7 @@ if __name__ == "__main__":
 
     ##------------Test 1-------------
 
-    audioReceiver.start_capture("timeout", 1, buffer_max_size=50, timeout_duration=3)
+    audioReceiver.start_capture("timeout", 1, buffer_size_seconds=10, timeout_duration=15)
     print("Start playing audio")
     audioReceiver._outputQueue.play_queue()
     print("Stop playing audio")
