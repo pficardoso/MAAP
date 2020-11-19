@@ -23,11 +23,10 @@ class AudioReceiverOutputQueue(queue.Queue):
 
     def _concat_signal_elements(self):
         list_audio = list(self.queue)
-        mega_audio_data = list()
-        for idx, audio_signal in enumerate(list_audio):
-            mega_audio_data.extend(audio_signal.y)
-        mega_audio = AudioSignal(np.array(mega_audio_data), list_audio[0].sr)
-        return mega_audio
+        megaAudioSignal = list_audio[0]
+        for audioSignalIns in list_audio[1:]:
+            megaAudioSignal = megaAudioSignal + audioSignalIns
+        return megaAudioSignal
 
     def play_queue(self, concat_elements=True):
 
@@ -102,8 +101,7 @@ class AudioReceiver():
 
     def _configure_input_stream(self, callback=None):
 
-        if not callback:
-            callback = self._get_input_stream_callback(0)
+
 
         self._input_stream = sd.InputStream(samplerate=self.sr,
                                             blocksize=0,
@@ -207,7 +205,7 @@ class AudioReceiver():
 
         self._set_and_check_stop_condition(stop_condition)
         self._outputQueue = AudioReceiverOutputQueue(buffer_max_size)
-        self._configure_input_stream(self._get_input_stream_callback(0))
+        self._configure_input_stream()
         self._set_and_check_stop_conditions_params(segments_duration, kargs)
 
         ## configures thread that will check stop condition
@@ -215,18 +213,23 @@ class AudioReceiver():
         keep_capturing_thread = threading.Thread(target=keep_capturing_thread_function,
                                                  args=(self._stop_condition_params,))
 
+        nr_frames = int(segments_duration * self.sr)
         with self._input_stream:
             print("Capturing with stop condition '{}' and params {}".format(self._stop_condition, self._stop_condition_params) )
             self.is_capturing = True
             keep_capturing_thread.start()
             while keep_capturing_thread.is_alive():
-                ## captures signal during 'segments_duration' seconds
-                time.sleep(segments_duration)
-                ## Crete a AudioSignal instance with the captured data and stores it in Queue.
+                """ 
+                data is  a two-dimensional numpy.ndarray with one column per channel (shape of 
+                (frames, channels)). The AudioSignal class must receive a np.array with len nr_frames. 
+                Thus, it is transposed.
+                """
+                data, _ = self._input_stream.read(nr_frames)
                 try:
-                    self._outputQueue.put(AudioSignal(self._data_samples_bucket.get_all_data(True), self.sr), block=False)
+                    self._outputQueue.put(AudioSignal(data.transpose()[0], self.sr), block=False)
                 except queue.Full:
                     warnings.warn("OutputQueue is full. AudioSignal entering on queue was deleted.")
+
             ## the main process waits that keep_capturing_thread_runs
             keep_capturing_thread.join()
 
@@ -236,8 +239,10 @@ if __name__ == "__main__":
 
     ##------------Test 1-------------
 
-    audioReceiver.start_capture("by_command", 1, buffer_max_size=5, timeout_duration=5)
+    audioReceiver.start_capture("timeout", 1, buffer_max_size=50, timeout_duration=3)
+    print("Start playing audio")
     audioReceiver._outputQueue.play_queue()
+    print("Stop playing audio")
     audioReceiver._outputQueue.plot_queue_signal()
 
 
