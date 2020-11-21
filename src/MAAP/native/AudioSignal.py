@@ -67,9 +67,14 @@ class AudioSignal():
 
 
 if __name__ == "__main__":
-    t = np.arange(0,500,50)
-    y = np.sin(t * np.pi/20)
-    audioSignal = AudioSignal(y, 2000)
+
+    duration = 2
+    sample_rate = 40000
+    nr_frames = duration*sample_rate
+    t = np.arange(0,nr_frames,1)
+    y = np.sin(t * np.pi/20000)
+    audioSignal = AudioSignal(y, sample_rate)
     print(repr(audioSignal))
     audioSignal.plot_signal()
+
 
