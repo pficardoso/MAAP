@@ -2,6 +2,8 @@ import sounddevice as sd
 import librosa
 import numpy as np
 import matplotlib.pyplot as plt
+import datetime
+import sys
 import math
 
 class AudioSignal():
@@ -15,6 +17,13 @@ class AudioSignal():
         self.y = y
         self.sr = sample_rate
         self.duration = librosa.get_duration(self.y, self.sr)
+
+
+    def __repr__(self):
+        ## print class
+        class_name = type(self).__name__
+        duration = datetime.timedelta(seconds=self.duration)
+        return '{}(sample_rate = {} Hz; duration = {};)'.format(class_name, self.sr, duration,)
 
     def __add__(self, audio_signal_ins):
         if not isinstance(audio_signal_ins, AudioSignal):
@@ -58,8 +67,9 @@ class AudioSignal():
 
 
 if __name__ == "__main__":
-    t = np.arange(0,100,1)
+    t = np.arange(0,500,50)
     y = np.sin(t * np.pi/20)
     audioSignal = AudioSignal(y, 2000)
+    print(repr(audioSignal))
     audioSignal.plot_signal()
 

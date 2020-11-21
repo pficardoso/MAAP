@@ -5,6 +5,7 @@ import time
 import numpy as np
 import threading
 import warnings
+import datetime
 from src.MAAP.native.AudioSignal import AudioSignal
 
 
@@ -19,8 +20,28 @@ class AudioReceiverOutputQueue(queue.Queue):
         :param maxsize:
         """
 
-        super().__init__(maxsize_seconds/segments_duration)
+        self._max_nr_signals = maxsize_seconds/segments_duration
+        super().__init__(self._max_nr_signals)
+        self._maxsize_seconds = maxsize_seconds
+        self._segment_duration = segments_duration
 
+    def __repr__(self):
+        class_name = type(self).__name__
+        repr_str = '{}.(maxsize_duration = {}; ' \
+               'segment_duration = {}; ' \
+               'max_nr_signals = {}; ' \
+               'current_duration = {}; ' \
+               'current_nr_signals = {};)'
+
+        current_nr_signals = self.qsize()
+        current_duration   = current_nr_signals * self._segment_duration
+        print(datetime.timedelta(seconds=current_duration))
+        return repr_str.format(class_name,
+                               datetime.timedelta(seconds=self._maxsize_seconds),
+                               datetime.timedelta(seconds=self._segment_duration),
+                               self._max_nr_signals,
+                               datetime.timedelta(seconds=current_duration),
+                               current_nr_signals)
 
     def _concat_signal_elements(self):
         list_audio = list(self.queue)
@@ -70,9 +91,19 @@ class AudioReceiver():
         self._stop_condition = None
         self._stop_condition_params = None
 
+    def __repr__(self):
+        class_name = type(self).__name__
+
+        repr_str = '{}.(sample_rate = {}; ' \
+                   'stop_conditon = {}; ' \
+                   '_outputQueue = {};)'
+
+        return repr_str.format(class_name,
+                               self.sr,
+                               self._stop_condition,
+                               repr(self._outputQueue))
+
     def _configure_input_stream(self, callback=None):
-
-
 
         self._input_stream = sd.InputStream(samplerate=self.sr,
                                             blocksize=0,
@@ -174,10 +205,12 @@ if __name__ == "__main__":
 
     ##------------Test 1-------------
 
-    audioReceiver.start_capture("timeout", 1, buffer_size_seconds=10, timeout_duration=15)
+    audioReceiver.start_capture("timeout", 1, buffer_size_seconds=10, timeout_duration=5)
     print("Start playing audio")
     audioReceiver._outputQueue.play_queue()
     print("Stop playing audio")
     audioReceiver._outputQueue.plot_queue_signal()
+    print(repr(audioReceiver._outputQueue))
+    print(repr(audioReceiver))
 
 
