@@ -4,6 +4,7 @@ import os
 import sounddevice as sd
 import soundfile as sf
 
+
 class AudioWriter():
     """"""
 
@@ -12,7 +13,7 @@ class AudioWriter():
 
         ## checks if audio signal
         if not isinstance(audio_signal, AudioSignal):
-            raise Exception("audio_signal must be an instance of class {}".format(type(AudioSignal).__name__))
+            raise Exception("audio_signal must be an instance of class {}".format(AudioSignal.__name__))
 
         self._dir_path = dir_path
         ## checks if directory_path already exists
@@ -24,7 +25,7 @@ class AudioWriter():
         self._final_path_name = os.path.join(self._dir_path, (self._file_name))
 
     def write(self):
-        sf.write(self._final_path_name, self._audio_signal.get_data(), self._audio_signal.get_sample_rate())
+        sf.write(self._final_path_name, self._audio_signal.get_data(), int(self._audio_signal.get_sample_rate()))
 
 
 if __name__ == "__main__":

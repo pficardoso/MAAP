@@ -196,6 +196,7 @@ class AudioReceiver():
                 except queue.Full:
                     warnings.warn("OutputQueue is full. AudioSignal entering on queue was deleted.")
 
+            self.is_capturing = False
             ## the main process waits that keep_capturing_thread_runs
             keep_capturing_thread.join()
 
