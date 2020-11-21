@@ -84,7 +84,7 @@ class AudioReceiver():
 
         ## Number of channels
         self.channels=1
-        self.is_capturing = False
+        self._is_capturing = False
         self._input_stream = None
         self._outputQueue = None
 
@@ -182,7 +182,7 @@ class AudioReceiver():
         nr_frames = int(segments_duration * self.sr)
         with self._input_stream:
             print("Capturing with stop condition '{}' and params {}".format(self._stop_condition, self._stop_condition_params) )
-            self.is_capturing = True
+            self._is_capturing = True
             keep_capturing_thread.start()
             while keep_capturing_thread.is_alive():
                 """ 
@@ -196,9 +196,19 @@ class AudioReceiver():
                 except queue.Full:
                     warnings.warn("OutputQueue is full. AudioSignal entering on queue was deleted.")
 
-            self.is_capturing = False
+            self._is_capturing = False
             ## the main process waits that keep_capturing_thread_runs
             keep_capturing_thread.join()
+
+    def is_capturing(self):
+        return self._is_capturing
+
+    def buffer_has_samples(self):
+        return not self._outputQueue.empty()
+
+    def get_sample_from_buffer(self):
+        return self._outputQueue.get()
+
 
 if __name__ == "__main__":
 
