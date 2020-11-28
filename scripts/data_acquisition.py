@@ -27,9 +27,23 @@ import threading
 import time
 import os
 import re
+import json
 
 FATHER_DIR_NAME = '../data.acquisition/'
 SUBFOLDER_PREFIX = 'set'
+
+example_text="" \
+             "Examples:\n" \
+             "Running in 'timeout' stop condition example -> -d test -t 2 -s timeout  -sp \'{\"timeout_duration\":15}\'\n" \
+             "Running in 'by_command' stop condition example -> -d test -t 2 -s by_command\n" \
+
+parser = argparse.ArgumentParser(description="Acquire audio files", epilog=example_text, formatter_class = argparse.RawTextHelpFormatter)
+parser.add_argument("-d", "--dir",  required=True, help="Path of dir where audio files should be saved")
+parser.add_argument("-t", "--time", required=True, type=int, help="Duration of audio segments, in seconds")
+parser.add_argument("-s", "--stop-condition", required=True, help="Stop condition of capture")
+parser.add_argument("-sp", "--stop-parameters", type=json.loads, help="Stop condition parameters - json input")
+parser.add_argument("-b", "--buffer-size", required=False, type=int, help="Size of audio buffer, in seconds")
+
 
 def prepare_folders(dir_name):
 
@@ -74,13 +88,13 @@ def prepare_folders(dir_name):
 
 
 
-def capture():
+def capture( dir_name, segments_duration, stop_condition, stop_condition_parameters, buffer_size_duration,):
 
     dir = os.path.join(FATHER_DIR_NAME, dir_name)
     audioReceiver = AudioReceiver()
     capture_thread = threading.Thread(target=audioReceiver.start_capture,
-                                      args=(capture_mode, segments_duration, buffer_size_duration),
-                                      kwargs=capture_mode_parameters)
+                                      args=(stop_condition, segments_duration, buffer_size_duration),
+                                      kwargs=stop_condition_parameters)
     capture_thread.start()
 
     # waits two seconds to allow initialization of thread until audioReceiver
@@ -96,22 +110,14 @@ def capture():
 
 
 if __name__=="__main__":
-    #TODO:
-    # 1 - get parameters
-    # 2 - validate parameters
-    # 3 - create directory where files will be saved
-    # 4 - start recording
 
+    args = parser.parse_args()
 
-    capture_mode = "timeout"
-    segments_duration = 2
-    buffer_size_duration = 10
-    dir_name = 'test1'
-    capture_mode_parameters = {'timeout_duration': 8}
-
-    dir_name = prepare_folders(dir_name)
+    final_dir = prepare_folders(args.dir)
 
     print("Audio is being recorded")
-    capture()
+    capture(final_dir, args.time,
+            args.stop_condition, args.stop_parameters, args.buffer_size)
+
     print("End")
 
