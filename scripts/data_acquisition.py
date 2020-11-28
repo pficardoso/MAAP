@@ -17,6 +17,8 @@ Some features:
         2 - previous files in that directory must be moved to a daughter folder (to be created)
     - Write a report of the recording session
 """
+import sys
+sys.path.append("../.")
 
 from src.MAAP.native.AudioReceiver import AudioReceiver
 from src.MAAP.native.AudioWriter import AudioWriter
@@ -25,7 +27,6 @@ import threading
 import time
 import os
 import re
-import shutil
 
 FATHER_DIR_NAME = '../data.acquisition/'
 SUBFOLDER_PREFIX = 'set'
