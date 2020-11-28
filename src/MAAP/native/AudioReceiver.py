@@ -19,6 +19,14 @@ class AudioReceiverOutputQueue(queue.Queue):
 
         :param maxsize:
         """
+        if maxsize_seconds is None:
+            maxsize_seconds=0 ##size is infinite
+
+        if segments_duration is None:
+            raise Exception("segments_duration arg must be given")
+
+        if maxsize_seconds!=0 and maxsize_seconds < segments_duration:
+            raise Exception("Size of buffer (maxsize_seconds arg), in seconds, must be larger than  the duration of a single segment (segments_duration arg)")
 
         self._max_nr_signals = maxsize_seconds/segments_duration
         super().__init__(self._max_nr_signals)
@@ -73,7 +81,7 @@ class AudioReceiver():
     """"""
 
     STOP_CAPTURE_MODE_LIST = ["default","timeout", "by_command"]
-    TIMEOUT_DURATION_DEFAULT = 3 # 3 seconds
+    TIMEOUT_DURATION_DEFAULT = 20 # 20 seconds
 
     def __init__(self, channels=1, device_id=0):
         """Constructor for AudioReceiver"""
@@ -134,11 +142,11 @@ class AudioReceiver():
             ## check conditions for timeout:
             ## 1 - See if parameters exist
             ## 2 - timeout_duration must be greater than twice of audio_segment
-            stop_condition_params["time_start"] = time.time()
             if "timeout_duration" in params:
                 stop_condition_params["timeout_duration"] = params["timeout_duration"]
             else:
                 stop_condition_params["timeout_duration"] = AudioReceiver.TIMEOUT_DURATION_DEFAULT
+                warnings.warn("Timeout duration default value ( {} seconds) will be used".format(AudioReceiver.TIMEOUT_DURATION_DEFAULT))
             if stop_condition_params["timeout_duration"] < 2*segments_duration:
                 raise Exception("'Timeout duration' must be greater than the double of 'segments_duration'")
 
@@ -148,8 +156,9 @@ class AudioReceiver():
     @staticmethod
     def _get_keep_capturing_thread_function(stop_condition):
 
+
         def timeout_thread_function(params):
-            while time.time() < params["time_start"] + params["timeout_duration"]:
+            while time.time() < time_start + params["timeout_duration"]:
                 pass
 
         def by_command_thread_function(params):
@@ -162,6 +171,7 @@ class AudioReceiver():
 
         ## if stop_condition is timeout
         if stop_condition == "timeout":
+            time_start = time.time()
             return timeout_thread_function
 
         if stop_condition == "by_command":

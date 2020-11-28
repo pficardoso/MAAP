@@ -3,8 +3,7 @@ import librosa
 import numpy as np
 import matplotlib.pyplot as plt
 import datetime
-import sys
-import math
+
 
 class AudioSignal():
     """"""
