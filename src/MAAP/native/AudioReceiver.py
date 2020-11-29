@@ -33,6 +33,9 @@ class AudioReceiverOutputQueue(queue.Queue):
         self._maxsize_seconds = maxsize_seconds
         self._segment_duration = segments_duration
 
+    def get_maxsize_seconds(self):
+        return self._maxsize_seconds
+
     def __repr__(self):
         class_name = type(self).__name__
         repr_str = '{}.(maxsize_duration = {}; ' \
@@ -110,6 +113,15 @@ class AudioReceiver():
                                self.sr,
                                self._stop_condition,
                                repr(self._outputQueue))
+
+    def get_sample_rate(self):
+        return self.sr
+
+    def get_stop_condition_parameters(self):
+        return self._stop_condition_params
+
+    def get_length_buffer_seconds(self):
+        return self._outputQueue.get_maxsize_seconds()
 
     def _configure_input_stream(self, callback=None):
 
