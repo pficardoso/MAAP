@@ -30,7 +30,6 @@ class AudioReader():
         if file_path:
             self.set_file_path(file_path)
 
-        print(self._file_path)
         try:
             y, sr = sf.read(self._file_path)
         except Exception as e:
