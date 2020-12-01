@@ -187,8 +187,24 @@ class AudioReceiver():
         if stop_condition == "by_command":
             return by_command_thread_function
 
+    @staticmethod
+    def _check_segments_duration(segments_duration):
+        if isinstance(segments_duration, (int, float)):
+            if segments_duration>=0.1 and segments_duration < 1.0:
+                ## check it is an integer part of one second.
+                ## The multiplication by 10 is an hack to avoid problems with floating point arithmetic.
+                is_intenger_part = (1.0*10) % (segments_duration*10) == 0
+                if not is_intenger_part:
+                    raise Exception("Segments duration must be an integer part of 1 second. Ex: 0.25 seconds, or 0.5 seconds")
+            elif segments_duration<=0.1:
+                raise Exception("Segments duration must be greater or equal than 0.1 seconds")
+        else:
+            ## raise exception
+            raise Exception("var segments_duration must be of type int or float. This has type {}".format(type(segments_duration)))
+
     def start_capture(self, stop_condition="default", segments_duration=1, buffer_size_seconds=0, **kargs):
 
+        self._check_segments_duration(segments_duration)
         self._set_and_check_stop_condition(stop_condition)
         self._outputQueue = AudioReceiverOutputQueue(buffer_size_seconds, segments_duration)
         self._configure_input_stream()
@@ -236,7 +252,7 @@ if __name__ == "__main__":
 
     ##------------Test 1-------------
 
-    audioReceiver.start_capture("timeout", 1, buffer_size_seconds=10, timeout_duration=5)
+    audioReceiver.start_capture("timeout", 0.25, buffer_size_seconds=10, timeout_duration=5)
     print("Start playing audio")
     audioReceiver._outputQueue.play_queue()
     print("Stop playing audio")

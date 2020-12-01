@@ -42,7 +42,7 @@ example_text="" \
 
 parser = argparse.ArgumentParser(description="Acquire audio files", epilog=example_text, formatter_class = argparse.RawTextHelpFormatter)
 parser.add_argument("-d", "--dir",  required=True, help="Path of dir where audio files should be saved")
-parser.add_argument("-t", "--time", required=True, type=int, help="Duration of audio segments, in seconds")
+parser.add_argument("-t", "--time", required=True, type=float, help="Duration of audio segments, in seconds")
 parser.add_argument("-s", "--stop-condition", required=True, help="Stop condition of capture")
 parser.add_argument("-sp", "--stop-parameters", type=json.loads, help="Stop condition parameters - json input")
 parser.add_argument("-b", "--buffer-size", required=False, type=int, help="Size of audio buffer, in seconds")
@@ -99,8 +99,9 @@ def prepare_folders(dir_name):
                 os.rename(src, target)
             ## move report
             report_file_path = os.path.join(path_to_use, REPORT_FILE_NAME)
-            target = os.path.join(dir_to_move, REPORT_FILE_NAME)
-            os.rename(report_file_path, target)
+            if os.path.exists(report_file_path):
+                target = os.path.join(dir_to_move, REPORT_FILE_NAME)
+                os.rename(report_file_path, target)
 
     return path_to_use
 
@@ -118,7 +119,7 @@ def capture( dir_name, segments_duration, stop_condition, stop_condition_paramet
     time.sleep(1)
     counter_audios_recorded = 0
     while (audioReceiver.is_capturing()) or (audioReceiver.buffer_has_samples()):
-        if not audioReceiver.buffer_has_samples():
+        if audioReceiver.buffer_has_samples():
             counter_audios_recorded=counter_audios_recorded+1
             audio_signal = audioReceiver.get_sample_from_buffer()
             audioWriter = AudioWriter(dir, str(counter_audios_recorded)+".wav", audio_signal).write()
