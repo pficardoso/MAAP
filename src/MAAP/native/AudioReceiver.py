@@ -1,8 +1,6 @@
 import sounddevice as sd
 import queue
-import sys
 import time
-import numpy as np
 import threading
 import warnings
 import datetime
