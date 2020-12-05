@@ -5,6 +5,7 @@ import threading
 import warnings
 import datetime
 from src.MAAP.native.AudioSignal import AudioSignal
+import multiprocessing
 
 
 warnings.simplefilter('always', UserWarning)
@@ -163,15 +164,14 @@ class AudioReceiver():
 
         self._stop_condition_params = stop_condition_params
 
-    @staticmethod
-    def _get_keep_capturing_thread_function(stop_condition):
 
+    def _get_keep_capturing_thread_or_process(self, stop_condition, stop_condition_params):
 
-        def timeout_thread_function(params):
+        def keep_capturing_timeout_mode_function(params):
             while time.time() < time_start + params["timeout_duration"]:
                 pass
 
-        def by_command_thread_function(params):
+        def keep_capturing_by_command_mode_function(params):
             print("Write 'stop' to stop the process")
             command_selected = False
             while not command_selected:
@@ -179,13 +179,12 @@ class AudioReceiver():
                 if val.strip() == "stop":
                     command_selected = True
 
-        ## if stop_condition is timeout
         if stop_condition == "timeout":
             time_start = time.time()
-            return timeout_thread_function
+            return multiprocessing.Process(target=keep_capturing_timeout_mode_function, args=(stop_condition_params,))
 
         if stop_condition == "by_command":
-            return by_command_thread_function
+            return threading.Thread(target=keep_capturing_by_command_mode_function, args=(stop_condition_params,))
 
     @staticmethod
     def _check_segments_duration(segments_duration):
@@ -210,17 +209,16 @@ class AudioReceiver():
         self._configure_input_stream()
         self._set_and_check_stop_conditions_params(segments_duration, kargs)
 
-        ## configures thread that will check stop condition
-        keep_capturing_thread_function = self._get_keep_capturing_thread_function(self._stop_condition)
-        keep_capturing_thread = threading.Thread(target=keep_capturing_thread_function,
-                                                 args=(self._stop_condition_params,))
+        ##
+        parallell_work = self._get_keep_capturing_thread_or_process(self._stop_condition, self._stop_condition_params)
 
         nr_frames = int(segments_duration * self.sr)
+
         with self._input_stream:
             print("Capturing with stop condition '{}' and params {}".format(self._stop_condition, self._stop_condition_params) )
             self._is_capturing = True
-            keep_capturing_thread.start()
-            while keep_capturing_thread.is_alive():
+            parallell_work.start()
+            while parallell_work.is_alive():
                 """ 
                 data is  a two-dimensional numpy.ndarray with one column per channel (shape of 
                 (frames, channels)). The AudioSignal class must receive a np.array with len nr_frames. 
@@ -234,7 +232,7 @@ class AudioReceiver():
 
             self._is_capturing = False
             ## the main process waits that keep_capturing_thread_runs
-            keep_capturing_thread.join()
+            parallell_work.join()
 
     def is_capturing(self):
         return self._is_capturing
