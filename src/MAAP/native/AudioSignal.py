@@ -40,6 +40,10 @@ class AudioSignal():
         return self.sr
 
     def get_duration(self):
+        """
+
+        :return: in seconds
+        """
         return self.duration
 
     @staticmethod

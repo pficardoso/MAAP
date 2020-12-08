@@ -85,7 +85,7 @@ class AudioFeatureExtractor():
 
 if __name__=="__main__":
 
-    audio_file_path = "/workspace/personal/projects/MAAP/audio.files/sir_duke_fast.wav"
+    audio_file_path = "../../../audio.files/sir_duke_fast.wav"
     print(features_dict)
     extractor = AudioFeatureExtractor()
     extractor.load_audio_file(audio_file_path)
