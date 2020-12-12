@@ -24,13 +24,23 @@ class AudioSignal():
         duration = datetime.timedelta(seconds=self.duration)
         return '{}(sample_rate = {} Hz; duration = {};)'.format(class_name, self.sr, duration,)
 
-    def __add__(self, audio_signal_ins):
-        if not isinstance(audio_signal_ins, AudioSignal):
-            raise Exception("Audio_signal_ins should be an instance of AudioSignal")
-        if self.sr != audio_signal_ins.sr:
-            raise Exception("SampleRate of both signals should be the same")
+    def __add__(self, audio_signals):
+        #audio_signal is an instance of AudioSignala
+        if isinstance(audio_signals, AudioSignal):
+            new_y = np.concatenate((self.y, audio_signals.y))
+            if self.sr != audio_signals.sr:
+                raise Exception("SampleRate of signals should be the same. {} {}".format(self, audio_signals))
 
-        new_y = np.concatenate((self.y, audio_signal_ins.y))
+        ##audio_signal is a list of audio_signal
+        elif all( isinstance(audio_signal, AudioSignal) for audio_signal in audio_signals ):
+            audios_to_concat = (self.y, *[audio_signal.y for audio_signal in audio_signals])
+            new_y = np.concatenate(audios_to_concat)
+            for audio_signal in audio_signals:
+                if self.sr != audio_signal.sr:
+                    raise Exception("SampleRate of signals should be the same. {} {}".format(self, audio_signal))
+        else:
+            raise Exception("audio_signals must be an instance of AudioSignal or a list of AudioSignals")
+
         return AudioSignal(new_y, self.sr)
 
     def get_data(self):
