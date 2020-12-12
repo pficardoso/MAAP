@@ -136,7 +136,7 @@ class AudioCutter:
         :param end_time:
         :return:
         """
-        time_start, end_time = self._check_start_and_end_time(start_time, end_time)
+        start_time, end_time = self._check_start_and_end_time(start_time, end_time)
         self.set_output_segment_duration(output_segment_duration)
 
         # the int operation already does the floor operation
@@ -150,7 +150,7 @@ class AudioCutter:
         for segment_i in np.arange(0, nr_segments):
             cut_audio_signal_list.append(self.cut_audio(start, end))
             start = end
-            end = start + self._output_segment_duration
+            end = end + self._output_segment_duration
 
         return cut_audio_signal_list
 
