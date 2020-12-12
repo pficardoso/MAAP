@@ -10,32 +10,52 @@ import re
 class AudioReader():
     """"""
 
-    def __init__(self, file_path : str):
+    def __init__(self, file_paths=None):
         """Constructor for """
-        self._file_path = None
-        self.set_file_path(file_path)
+        if file_paths is None:
+            pass
+        else:
+            self.set_file_path(file_paths)
 
     @staticmethod
     def valid_extension(file_path : str):
         return bool(re.match(".*\.wav$", os.path.basename(file_path)))
 
-    def set_file_path(self, file_path : str):
-        if self.valid_extension(file_path):
-            self._file_path = file_path
-        else:
-            Exception("The file {} must be an .wav file".format(file_path))
+    def set_file_path(self, file_paths):
 
-    def read(self, file_path=None):
+        self._file_path = list()
 
-        if file_path:
-            self.set_file_path(file_path)
+        if isinstance(file_paths, str):
+            file_paths = [file_paths]
+        elif isinstance(file_paths, tuple):
+            file_paths = list(file_paths)
 
-        try:
-            y, sr = sf.read(self._file_path)
-        except Exception as e:
-            raise Exception("{}".format(e))
+        for file_path in file_paths:
+            if self.valid_extension(file_path):
+                self._file_path.append(file_path)
+            else:
+                Exception("The file {} must be an .wav file".format(file_path))
 
-        return AudioSignal(y, sr)
+    def read(self, file_paths=None):
+
+        if file_paths:
+            self.set_file_path(file_paths)
+
+        list_y = list()
+        list_sr = list()
+        for file_path in self._file_path:
+            try:
+                y, sr = sf.read(file_path)
+                list_y.append(y)
+                list_sr.append(sr)
+            except Exception as e:
+                raise Exception("{}".format(e))
+
+        set_sr = set(list_sr)
+        if len(set_sr) > 1:
+            raise Exception("The sample rates of audios are differents. Audio paths {}".format(self._file_path))
+
+        return AudioSignal(np.concatenate(list_y), list_sr[0])
 
 if __name__ == "__main__":
 
