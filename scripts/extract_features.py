@@ -59,7 +59,7 @@ if __name__=="__main__":
     fsCrawler = FSCrawler(root_dir)
     featureExtractor = AudioFeatureExtractor()
 
-    list_audios_paths = fsCrawler.search_files(extension=EXTENSION, max_depth=level)
+    list_audios_paths = fsCrawler.search_files_by_extension(extension=EXTENSION, max_depth=level)
 
     if args.uniq_pickle:
         ## stores in a uniq pickle
