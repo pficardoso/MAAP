@@ -83,6 +83,10 @@ class AudioFeatureExtractor():
         mfccs = librosa.feature.mfcc(self.y, self.sample_rate, n_mfcc=n_mfcc)
         return mfccs
 
+    @audio_feature("rms")
+    def compute_feature_rms(self):
+        return librosa.feature.rms(self.y)[0]
+
 if __name__=="__main__":
 
     audio_file_path = "../../../audio.files/sir_duke_fast.wav"
