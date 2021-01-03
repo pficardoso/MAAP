@@ -64,8 +64,11 @@ class AudioFeatureExtractor():
             raise Exception(" Features with name(s) '{}' do not exist"
                             .format(set(conf["Main"]).difference(set(AVAILABLE_KEYS_MAIN_SECTION_CONFIG))))
 
+        nr_sections = len(conf.sections())
+        sections_to_visit = set(conf.sections())
         # get the features in main
         features_value = conf['Main']['Features']
+        sections_to_visit.remove("Main")
         if re.match(python_list_format_pattern, features_value):
             ##it is a string with a list format
             features_list = re.sub("[\[\]\s]","",features_value).split(",")
@@ -95,10 +98,19 @@ class AudioFeatureExtractor():
         features_kwarg_dict = {}
         for i in range(0, len(features_list)):
             section_name = feature_section_names[i]
+            # section does not exist. use default
             if not section_name in conf:
                 features_kwarg_dict[features_list[i]] = {}
                 continue
+            # section exist. regist visit
+            else:
+                sections_to_visit.remove(section_name)
             features_kwarg_dict[features_list[i]] = dict(conf[section_name])
+
+        ## check if all sections were visited
+        if  len(sections_to_visit) != 0:
+            raise Exception("There is a problem in the config file. The following sections were not visited '{}."
+                            "Correct config file".format(sections_to_visit))
 
         self._config_features = features_list
         self._config_output_format = output_format
@@ -213,4 +225,3 @@ if __name__=="__main__":
 
     extractor.config_by_file(config_file_path)
     features = extractor.compute_features_by_config()
-    features
