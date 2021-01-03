@@ -11,7 +11,7 @@ from src.MAAP.native.AudioReader import AudioReader
 python_list_format_pattern = "\[((\s)*([a-zA-z1-9])+(\s)*(\,)?(\s)*)+\]"
 
 DEFAULT_OUTPUT_FORMAT = 'dict_key_per_feature'
-AVAILABLE_OUTPUT_FORMAT = ['dict_key_per_feature', 'dict_key_per_feature_category']
+AVAILABLE_OUTPUT_FORMAT = ['dict_key_per_feature', 'dict_key_per_feature_dim']
 AVAILABLE_KEYS_MAIN_SECTION_CONFIG = ["features", "outputformat"] # module config parser is case insensitive
 
 features_dict = dict()
@@ -111,6 +111,19 @@ class AudioFeatureExtractor():
         self._config_features_kwarg_dict = None
         self._configured_by_file = False
 
+    def _format_according_configuration(self, features_value_dict):
+        if self._config_output_format == "dict_key_per_feature":
+            return features_value_dict
+        if self._config_output_format == "dict_key_per_feature_dim":
+            formated_features_value_dict = features_value_dict.copy()
+            if "mfcc" in features_value_dict:
+                n_dim = features_value_dict["mfcc"].shape[0]
+                formated_features_value_dict.pop("mfcc", None)
+                for i in range(1, n_dim+1):
+                    formated_features_value_dict["mfcc_" + str(i)] = features_value_dict["mfcc"][i-1]
+            ## sort the keys
+            return {key: formated_features_value_dict[key] for key in sorted(formated_features_value_dict.keys())}
+
     def compute_features_by_config(self):
         if not self._configured_by_file:
             raise Exception("FeatureExtractor instance is not configured")
@@ -122,6 +135,7 @@ class AudioFeatureExtractor():
             feature_name = self._config_features[i]
             features_values_dict[feature_name] = features_func_list[i](self, **self._config_features_kwarg_dict[feature_name])
 
+        features_values_dict = self._format_according_configuration(features_values_dict)
         return features_values_dict
 
     def compute_all_features(self):
@@ -181,4 +195,4 @@ if __name__=="__main__":
     extractor.compute_spectrogram(True)
 
     extractor.config_by_file(config_file_path)
-    extractor.compute_features_by_config()
+    features = extractor.compute_features_by_config()
