@@ -90,13 +90,13 @@ class AudioFeatureExtractor():
                 raise Exception("OutputFormat '{}' not available. Allowed values are '{}'".format(output_format, AVAILABLE_OUTPUT_FORMAT))
 
         ##define the section_names for each feature
-        feature_section_names = [name + "_func_kwargs" for name in features_list]
+        feature_section_names = [name + "_func_args" for name in features_list]
 
         features_kwarg_dict = {}
         for i in range(0, len(features_list)):
             section_name = feature_section_names[i]
             if not section_name in conf:
-                features_kwarg_dict[features_list[i]] = None
+                features_kwarg_dict[features_list[i]] = {}
                 continue
             features_kwarg_dict[features_list[i]] = dict(conf[section_name])
 
@@ -110,6 +110,19 @@ class AudioFeatureExtractor():
         self._config_output_format = None
         self._config_features_kwarg_dict = None
         self._configured_by_file = False
+
+    def compute_features_by_config(self):
+        if not self._configured_by_file:
+            raise Exception("FeatureExtractor instance is not configured")
+
+        # get the list with the functions to be runn
+        features_func_list = [features_dict[feature_name] for feature_name in self._config_features]
+        features_values_dict = dict()
+        for i in range(0, len(self._config_features)):
+            feature_name = self._config_features[i]
+            features_values_dict[feature_name] = features_func_list[i](self, **self._config_features_kwarg_dict[feature_name])
+
+        return features_values_dict
 
     def compute_all_features(self):
         return {feature_name: feature_function(self) for feature_name, feature_function in features_dict.items()}
@@ -144,11 +157,14 @@ class AudioFeatureExtractor():
 
     @audio_feature("spectral_rolloff")
     def compute_feature_spectral_rolloff(self, roll_percent=0.85):
+        roll_percent = float(roll_percent)
         rol = librosa.feature.spectral_rolloff(self.y, self.sample_rate, roll_percent=roll_percent)[0]
         return rol
 
     @audio_feature("mfcc")
     def compute_feature_mfcc(self, n_mfcc=20):
+        ## from config files, values are fetched as string. This n_mfcc must be converted to int
+        n_mfcc = int(n_mfcc)
         mfccs = librosa.feature.mfcc(self.y, self.sample_rate, n_mfcc=n_mfcc)
         return mfccs
 
@@ -160,11 +176,9 @@ if __name__=="__main__":
 
     audio_file_path = "../../../audio.files/sir_duke_fast.wav"
     config_file_path = "/workspace/tmp/test.ini"
-    print(features_dict)
     extractor = AudioFeatureExtractor()
     extractor.load_audio_file(audio_file_path)
     extractor.compute_spectrogram(True)
-    print("Computing features")
-    print(extractor.compute_all_features())
 
     extractor.config_by_file(config_file_path)
+    extractor.compute_features_by_config()
