@@ -112,8 +112,10 @@ class AudioFeatureExtractor():
         self._configured_by_file = False
 
     def _format_according_configuration(self, features_value_dict):
+
         if self._config_output_format == "dict_key_per_feature":
             return features_value_dict
+
         if self._config_output_format == "dict_key_per_feature_dim":
             formated_features_value_dict = features_value_dict.copy()
             if "mfcc" in features_value_dict:
@@ -128,7 +130,7 @@ class AudioFeatureExtractor():
         if not self._configured_by_file:
             raise Exception("FeatureExtractor instance is not configured")
 
-        # get the list with the functions to be runn
+        # get the list with the functions to be run
         features_func_list = [features_dict[feature_name] for feature_name in self._config_features]
         features_values_dict = dict()
         for i in range(0, len(self._config_features)):
@@ -141,8 +143,21 @@ class AudioFeatureExtractor():
     def compute_all_features(self):
         return {feature_name: feature_function(self) for feature_name, feature_function in features_dict.items()}
 
+    @staticmethod
+    def _make_poling_array(array : np.array, pooling_strategy=None):
+        if not pooling_strategy:
+            return array
+        if pooling_strategy == "mean":
+            return array.mean()
+        if pooling_strategy == "max":
+            return array.max()
+        if pooling_strategy == "sum":
+            return array.sum()
+
+        raise Exception("Pooling strategy '{}' is not valid".format(pooling_strategy))
+
     @audio_feature("spectrogram")
-    def compute_spectrogram(self, return_in_db=True, plot=False):
+    def compute_spectrogram(self, return_in_db=True, plot=False, pooling=None):
         # And compute the spectrogram magnitude and phase
         S_full, phase = librosa.magphase(librosa.stft(self.y))
 
@@ -160,26 +175,28 @@ class AudioFeatureExtractor():
             return S_full, phase
 
     @audio_feature("zero_cross_rate")
-    def compute_feature_zero_cross_rate(self):
+    def compute_feature_zero_cross_rate(self, pooling=None):
         zcr = librosa.feature.zero_crossing_rate(self.y)[0]
-        return zcr
+        return self._make_poling_array(zcr, pooling)
 
     @audio_feature("spectral_centroid")
-    def compute_feature_spectral_centroid(self):
+    def compute_feature_spectral_centroid(self, pooling=None):
         ctr = librosa.feature.spectral_centroid(self.y)[0]
-        return ctr
+        return self._make_poling_array(ctr, pooling)
 
     @audio_feature("spectral_rolloff")
-    def compute_feature_spectral_rolloff(self, roll_percent=0.85):
+    def compute_feature_spectral_rolloff(self, roll_percent=0.85, pooling=None):
         roll_percent = float(roll_percent)
         rol = librosa.feature.spectral_rolloff(self.y, self.sample_rate, roll_percent=roll_percent)[0]
-        return rol
+        return self._make_poling_array(rol, pooling)
 
     @audio_feature("mfcc")
-    def compute_feature_mfcc(self, n_mfcc=20):
+    def compute_feature_mfcc(self, n_mfcc=20, pooling=None):
         ## from config files, values are fetched as string. This n_mfcc must be converted to int
         n_mfcc = int(n_mfcc)
         mfccs = librosa.feature.mfcc(self.y, self.sample_rate, n_mfcc=n_mfcc)
+        if pooling != None:
+            mfccs = np.array([self._make_poling_array(mfcc_i_array, pooling) for mfcc_i_array in mfccs])
         return mfccs
 
     @audio_feature("rms")
@@ -196,3 +213,4 @@ if __name__=="__main__":
 
     extractor.config_by_file(config_file_path)
     features = extractor.compute_features_by_config()
+    features
