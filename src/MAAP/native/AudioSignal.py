@@ -65,18 +65,20 @@ class AudioSignal():
     def play_audio(self):
         sd.play(self.y.transpose(), self.sr, blocking=True)
 
-    def plot_signal(self, channel=0):
+    def plot_signal(self, channel=0, ax=None):
+
+        if ax is None:
+            ax = plt.gca()
 
         self.t = [1 / self.sr * i for i in np.arange(0, len(self.y), 1)]
-        fig, ax = plt.subplots(1, 1)
         step_seconds = 1/self.sr
         t = [1/self.sr * i for i in np.arange(0,len(self.y),1)]
         ax.set_xlabel("Time (s)")
         ax.plot(t, self.y)
         ax.grid(True)
         ax.set_ylim(self.y.min(), self.y.max())
-        fig.tight_layout()
-        plt.show()
+
+        return ax
 
 
 if __name__ == "__main__":
