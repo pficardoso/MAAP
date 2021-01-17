@@ -12,7 +12,7 @@ python_list_format_pattern = "\[((\s)*([a-zA-z1-9])+(\s)*(\,)?(\s)*)+\]"
 
 DEFAULT_OUTPUT_FORMAT = 'dict_key_per_feature'
 AVAILABLE_OUTPUT_FORMAT = ['dict_key_per_feature', 'dict_key_per_feature_dim']
-AVAILABLE_KEYS_MAIN_SECTION_CONFIG = ["features", "outputformat"] # module config parser is case insensitive
+AVAILABLE_KEYS_MAIN_SECTION_CONFIG = ["features", "output_format"] # module config parser is case insensitive
 
 features_dict = dict()
 
@@ -60,15 +60,15 @@ class AudioFeatureExtractor():
         conf.read(file_path)
 
         # check the values in the section main
-        if not set(conf["Main"]).issubset(set(AVAILABLE_KEYS_MAIN_SECTION_CONFIG)):
+        if not set(conf["main"]).issubset(set(AVAILABLE_KEYS_MAIN_SECTION_CONFIG)):
             raise Exception(" Features with name(s) '{}' do not exist"
-                            .format(set(conf["Main"]).difference(set(AVAILABLE_KEYS_MAIN_SECTION_CONFIG))))
+                            .format(set(conf["main"]).difference(set(AVAILABLE_KEYS_MAIN_SECTION_CONFIG))))
 
         nr_sections = len(conf.sections())
         sections_to_visit = set(conf.sections())
         # get the features in main
-        features_value = conf['Main']['Features']
-        sections_to_visit.remove("Main")
+        features_value = conf['main']['features']
+        sections_to_visit.remove("main")
         if re.match(python_list_format_pattern, features_value):
             ##it is a string with a list format
             features_list = re.sub("[\[\]\s]","",features_value).split(",")
@@ -87,10 +87,10 @@ class AudioFeatureExtractor():
 
         # get the output_format in main
         output_format = DEFAULT_OUTPUT_FORMAT
-        if "OutputFormat" in conf["Main"]:
-            output_format = conf["Main"]["OutputFormat"]
+        if "output_format" in conf["main"]:
+            output_format = conf["main"]["output_format"]
             if output_format not in AVAILABLE_OUTPUT_FORMAT:
-                raise Exception("OutputFormat '{}' not available. Allowed values are '{}'".format(output_format, AVAILABLE_OUTPUT_FORMAT))
+                raise Exception("output_format '{}' not available. Allowed values are '{}'".format(output_format, AVAILABLE_OUTPUT_FORMAT))
 
         ##define the section_names for each feature
         feature_section_names = [name + "_func_args" for name in features_list]
@@ -122,6 +122,9 @@ class AudioFeatureExtractor():
         self._config_output_format = None
         self._config_features_kwarg_dict = None
         self._configured_by_file = False
+
+    def is_configured_by_file(self):
+        return  self._configured_by_file
 
     def _format_according_configuration(self, features_value_dict):
 
