@@ -63,26 +63,23 @@ def capture( dir_name, stop_condition, stop_condition_parameters, buffer_size_du
 
     dir = os.path.join(FATHER_DIR_NAME, dir_name)
     audioReceiver = AudioReceiver()
-    capture_thread = threading.Thread(target=audioReceiver.start_capture,
-                                      args=(stop_condition, SEGMENTS_DURATION, buffer_size_duration),
-                                      kwargs=stop_condition_parameters)
-    capture_thread.start()
+    audioReceiver.config_capture(stop_condition, SEGMENTS_DURATION, buffer_size_duration, **stop_condition_parameters)
 
     # waits two seconds to allow initialization of thread until audioReceiver
     # starts capture
+    audioReceiver.start_capture()
     time.sleep(1)
     counter_segments_recorded = 0
     audio_signals = list()
-    while (audioReceiver.is_capturing()) or (audioReceiver.buffer_has_samples()):
-        if audioReceiver.buffer_has_samples():
-            counter_segments_recorded=counter_segments_recorded+1
-            audio_signals.append(audioReceiver.get_sample_from_buffer())
+    while audioReceiver.is_capturing() or audioReceiver.output_queue_has_samples():
+        counter_segments_recorded=counter_segments_recorded+1
+        audio_signals.append(audioReceiver.get_sample_from_output_queue())
 
     # write the audioSignal audio
     audioWriter = AudioWriter(dir, OUTPUT_AUDIO_FILENAME, concat_audio_signals(audio_signals)).write()
-    return audioReceiver, audioWriter, counter_segments_recorded
+    return audioReceiver, counter_segments_recorded
 
-def make_report(capture_name, dir_name, run_date, stop_condition, audioReceiver: AudioReceiver , audioWriter: AudioWriter, nr_segments_recorded):
+def make_report(capture_name, dir_name, run_date, stop_condition, audioReceiver: AudioReceiver , nr_segments_recorded):
     report = dict()
     report["name"]                       = capture_name
     report["date"]                       = run_date
@@ -119,10 +116,10 @@ if __name__=="__main__":
     run_date = get_current_date_time()
 
     print("Audio is being recorded")
-    audioReceiver, audioWriter, nr_segments_recorded = capture(dir_to_save,
+    audioReceiver, nr_segments_recorded = capture(dir_to_save,
                                 args.stop_condition, args.stop_parameters,
                                 args.buffer_size)
 
-    make_report(args.dir, dir_to_save, run_date, args.stop_condition, audioReceiver, audioWriter, nr_segments_recorded)
+    make_report(args.dir, dir_to_save, run_date, args.stop_condition, audioReceiver, nr_segments_recorded)
     print("End")
 
