@@ -31,6 +31,7 @@ class AudioReceiverOutputQueue(queue.Queue):
         super().__init__(self._max_nr_signals)
         self._maxsize_seconds = maxsize_seconds
         self._segment_duration = segments_duration
+        self._capture_is_configured = False
 
     def get_maxsize_seconds(self):
         return self._maxsize_seconds
@@ -100,6 +101,7 @@ class AudioReceiver():
 
         self._stop_condition = None
         self._stop_condition_params = None
+        self._segments_duration = None
 
     def __repr__(self):
         class_name = type(self).__name__
@@ -181,10 +183,12 @@ class AudioReceiver():
 
         if stop_condition == "timeout":
             time_start = time.time()
-            return multiprocessing.Process(target=keep_capturing_timeout_mode_function, args=(stop_condition_params,))
+            return multiprocessing.Process(target=keep_capturing_timeout_mode_function, args=(stop_condition_params,),
+                                           daemon=True)
 
         if stop_condition == "by_command":
-            return threading.Thread(target=keep_capturing_by_command_mode_function, args=(stop_condition_params,))
+            return threading.Thread(target=keep_capturing_by_command_mode_function, args=(stop_condition_params,),
+                                    daemon=True)
 
     @staticmethod
     def _check_segments_duration(segments_duration):
@@ -201,24 +205,28 @@ class AudioReceiver():
             ## raise exception
             raise Exception("var segments_duration must be of type int or float. This has type {}".format(type(segments_duration)))
 
-    def start_capture(self, stop_condition="default", segments_duration=1, buffer_size_seconds=0, **kargs):
 
+    def config_capture(self, stop_condition="default", segments_duration=1, buffer_size_seconds=0, **kargs):
+        self._segments_duration = segments_duration
         self._check_segments_duration(segments_duration)
         self._set_and_check_stop_condition(stop_condition)
         self._outputQueue = AudioReceiverOutputQueue(buffer_size_seconds, segments_duration)
         self._configure_input_stream()
         self._set_and_check_stop_conditions_params(segments_duration, kargs)
+        self._capture_is_configured = True
 
-        ##
-        parallell_work = self._get_keep_capturing_thread_or_process(self._stop_condition, self._stop_condition_params)
+    def start_capture(self):
 
-        nr_frames = int(segments_duration * self.sr)
+        if not self._capture_is_configured:
+            raise Exception("Capture was not configured yet. Run config_capture method")
 
+        keep_recording_alive_thread = self._get_keep_capturing_thread_or_process(self._stop_condition, self._stop_condition_params)
+        nr_frames = int(self._segments_duration * self.sr)
         with self._input_stream:
             print("Capturing with stop condition '{}' and params {}".format(self._stop_condition, self._stop_condition_params) )
             self._is_capturing = True
-            parallell_work.start()
-            while parallell_work.is_alive():
+            keep_recording_alive_thread.start()
+            while keep_recording_alive_thread.is_alive():
                 """ 
                 data is  a two-dimensional numpy.ndarray with one column per channel (shape of 
                 (frames, channels)). The AudioSignal class must receive a np.array with len nr_frames. 
@@ -231,18 +239,21 @@ class AudioReceiver():
                     warnings.warn("OutputQueue is full. AudioSignal entering on queue was deleted.")
 
             self._is_capturing = False
-            ## the main process waits that keep_capturing_thread_runs
-            parallell_work.join()
 
     def is_capturing(self):
         return self._is_capturing
 
-    def buffer_has_samples(self):
+    def output_queue_has_samples(self):
         return not self._outputQueue.empty()
 
-    def get_sample_from_buffer(self):
+    def get_sample_from_output_queue(self):
         return self._outputQueue.get()
 
+    def get_output_queue(self):
+        return self._outputQueue
+
+    def join_output_queue(self):
+        return self._outputQueue.join()
 
 if __name__ == "__main__":
 
