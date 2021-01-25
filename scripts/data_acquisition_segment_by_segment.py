@@ -55,14 +55,16 @@ def get_current_date_time():
     dt_string = now.strftime("%d/%m/%Y %H:%M:%S")
     return dt_string
 
+
 def get_str_minutes_second(seconds: int):
     return "{} ({} seconds)".format(datetime.timedelta(seconds=seconds), seconds)
 
-def capture( dir_name, segments_duration, stop_condition, stop_condition_parameters, buffer_size_duration,):
+
+def capture( dir_name, segments_duration, stop_condition, stop_condition_parameters, buffer_size_duration):
 
     dir = os.path.join(FATHER_DIR_NAME, dir_name)
     audioReceiver = AudioReceiver()
-    audioReceiver.config_capture(stop_condition, segments_duration, buffer_size_duration, **stop_condition_parameters)
+    audioReceiver.config_capture(stop_condition, segments_duration, buffer_size_duration, True, stop_condition_parameters)
 
     # waits two seconds to allow initialization of thread until audioReceiver
     # starts capture
@@ -74,6 +76,8 @@ def capture( dir_name, segments_duration, stop_condition, stop_condition_paramet
         audio_signal = audioReceiver.get_sample_from_output_queue()
         audioWriter = AudioWriter(dir, str(counter_audios_recorded) + ".wav", audio_signal).write()
 
+    # This last join is not necessary probably, but will be done just for precaution
+    audioReceiver.capture_join()
     return audioReceiver, counter_audios_recorded
 
 def make_report(capture_name, dir_name, run_date, stop_condition, segment_duration, audioReceiver: AudioReceiver, nr_audios_recorded):
