@@ -56,6 +56,9 @@ class AudioSignal():
         """
         return self.duration
 
+    def get_timestamps_samples(self):
+        return [1/self.sr * i for i in np.arange(0,len(self.y),1)]
+
     @staticmethod
     def _check_initial_parameters( y, sample_rate ):
         # y must by a np.ndarray with 1-dim
@@ -72,7 +75,7 @@ class AudioSignal():
 
         self.t = [1 / self.sr * i for i in np.arange(0, len(self.y), 1)]
         step_seconds = 1/self.sr
-        t = [1/self.sr * i for i in np.arange(0,len(self.y),1)]
+        t = self.get_timestamps_samples()
         ax.set_xlabel("Time (s)")
         ax.plot(t, self.y)
         ax.grid(True)
