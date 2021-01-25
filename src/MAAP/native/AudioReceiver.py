@@ -10,7 +10,6 @@ import multiprocessing
 
 warnings.simplefilter('always', UserWarning)
 
-
 class AudioReceiverOutputQueue(queue.Queue):
     """"""
     def __init__(self, maxsize_seconds, segments_duration):
@@ -102,6 +101,8 @@ class AudioReceiver():
         self._stop_condition = None
         self._stop_condition_params = None
         self._segments_duration = None
+        self._capture_thread = None
+        self._capture_is_configured = False
 
     def __repr__(self):
         class_name = type(self).__name__
@@ -148,7 +149,7 @@ class AudioReceiver():
                 stop_condition, AudioReceiver.STOP_CAPTURE_MODE_LIST
             ))
 
-    def _set_and_check_stop_conditions_params(self, segments_duration, params):
+    def _set_and_check_stop_conditions_params(self, segments_duration, params: dict):
 
         stop_condition_params = dict()
         if self._stop_condition == "timeout":
@@ -205,40 +206,54 @@ class AudioReceiver():
             ## raise exception
             raise Exception("var segments_duration must be of type int or float. This has type {}".format(type(segments_duration)))
 
+    def config_capture(self, stop_condition="default", segments_duration=1, buffer_size_seconds=0, daemon=True,
+                       stop_parameters=dict()):
 
-    def config_capture(self, stop_condition="default", segments_duration=1, buffer_size_seconds=0, **kargs):
         self._segments_duration = segments_duration
         self._check_segments_duration(segments_duration)
         self._set_and_check_stop_condition(stop_condition)
         self._outputQueue = AudioReceiverOutputQueue(buffer_size_seconds, segments_duration)
         self._configure_input_stream()
-        self._set_and_check_stop_conditions_params(segments_duration, kargs)
+        self._set_and_check_stop_conditions_params(segments_duration, stop_parameters)
+
+        # initialize capture_thread
+        keep_alive_thread = self._get_keep_capturing_thread_or_process(self._stop_condition,
+                                                                      self._stop_condition_params)
+        nr_frames_per_segment = int(self._segments_duration * self.sr)
+        self._capture_thread = threading.Thread(target=self._capture_thread_target_function,
+                                                args=(keep_alive_thread, nr_frames_per_segment),
+                                                daemon=daemon)
         self._capture_is_configured = True
 
     def start_capture(self):
 
         if not self._capture_is_configured:
             raise Exception("Capture was not configured yet. Run config_capture method")
+        self._capture_thread.start()
 
-        keep_recording_alive_thread = self._get_keep_capturing_thread_or_process(self._stop_condition, self._stop_condition_params)
-        nr_frames = int(self._segments_duration * self.sr)
+    def capture_join(self):
+        self._capture_thread.join()
+
+    def _capture_thread_target_function(self, keep_alive_thread, nr_frames_per_segment):
+
         with self._input_stream:
-            print("Capturing with stop condition '{}' and params {}".format(self._stop_condition, self._stop_condition_params) )
+            print("Capturing with stop condition '{}' and params {}".format(self._stop_condition,
+                                                                            self._stop_condition_params))
             self._is_capturing = True
-            keep_recording_alive_thread.start()
-            while keep_recording_alive_thread.is_alive():
+            keep_alive_thread.start()
+            while keep_alive_thread.is_alive():
                 """ 
                 data is  a two-dimensional numpy.ndarray with one column per channel (shape of 
                 (frames, channels)). The AudioSignal class must receive a np.array with len nr_frames. 
                 Thus, it is transposed.
                 """
-                data, _ = self._input_stream.read(nr_frames)
+                data, _ = self._input_stream.read(nr_frames_per_segment)
                 try:
                     self._outputQueue.put(AudioSignal(data.transpose()[0], self.sr), block=False)
                 except queue.Full:
                     warnings.warn("OutputQueue is full. AudioSignal entering on queue was deleted.")
-
             self._is_capturing = False
+        return
 
     def is_capturing(self):
         return self._is_capturing
