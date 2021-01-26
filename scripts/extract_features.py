@@ -1,10 +1,15 @@
 import sys
-sys.path.append("../.")
+import os
+
+""" 
+adds the abspath of MAAP source root to the syspath.
+"""
+sys.path.append(os.path.abspath(os.path.join(__file__, "../..")))
+
 
 from src.resources.FSCrawler.FSCrawler import FSCrawler
 from src.MAAP.native.AudioFeatureExtractor import AudioFeatureExtractor
 import pickle
-import os
 import argparse
 from tqdm import tqdm
 
