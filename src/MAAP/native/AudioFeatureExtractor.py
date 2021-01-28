@@ -1,14 +1,9 @@
 import librosa.display
 import numpy as np
 import matplotlib.pyplot as plt
-import os
-import re
-import configparser
 from src.MAAP.native.AudioSignal import AudioSignal
 from src.MAAP.native.AudioReader import AudioReader
 
-
-python_list_format_pattern = "\[((\s)*([a-zA-z1-9])+(\s)*(\,)?(\s)*)+\]"
 
 DEFAULT_OUTPUT_FORMAT = 'dict_key_per_feature'
 AVAILABLE_OUTPUT_FORMAT = ['dict_key_per_feature', 'dict_key_per_feature_dim']
@@ -26,7 +21,6 @@ def audio_feature(feature_name):
 
 class AudioFeatureExtractor():
     """"""
-    features_dict = dict()
 
     def __init__(self,):
         """Constructor for AudioFeatureExtractor"""
@@ -34,8 +28,8 @@ class AudioFeatureExtractor():
         self.audio_file_path = None
         self._config_features = None
         self._config_output_format = None
-        self._config_features_kwarg_dict = None
-        self._configured_by_file = False
+        self._config_features_functions_kwarg_dict = None
+        self._configured = False
 
     def load_audio_file(self, file_path):
 
@@ -51,80 +45,56 @@ class AudioFeatureExtractor():
         self.y = self.audioSignal.get_data()
         self.sample_rate = self.audioSignal.get_sample_rate()
 
-    def config_by_file(self, file_path):
+    def config(self, features_to_use, output_format=DEFAULT_OUTPUT_FORMAT, **kwargs):
 
-        conf = configparser.ConfigParser()
-        if not os.path.isfile(file_path):
-            raise Exception("{} does not exist or is not a file".format(file_path))
-
-        conf.read(file_path)
-
-        # check the values in the section main
-        if not set(conf["main"]).issubset(set(AVAILABLE_KEYS_MAIN_SECTION_CONFIG)):
-            raise Exception(" Features with name(s) '{}' do not exist"
-                            .format(set(conf["main"]).difference(set(AVAILABLE_KEYS_MAIN_SECTION_CONFIG))))
-
-        nr_sections = len(conf.sections())
-        sections_to_visit = set(conf.sections())
-        # get the features in main
-        features_value = conf['main']['features']
-        sections_to_visit.remove("main")
-        if re.match(python_list_format_pattern, features_value):
-            ##it is a string with a list format
-            features_list = re.sub("[\[\]\s]","",features_value).split(",")
-            ## Check if all features_list are available
-            if not set(features_list).issubset(set(features_dict)):
-                raise Exception(" Features with name(s) '{}' do not exist"
-                                .format(set(features_list).difference(set(features_dict))))
-        elif features_value.strip() == "all":
-            ## get all the features name
-            features_list = list(features_dict.keys())
-        else:
-            raise Exception("Value of Features must has python list format or value 'all'")
-
-        ##sort the list of features
-        features_list = sorted(features_list)
-
-        # get the output_format in main
-        output_format = DEFAULT_OUTPUT_FORMAT
-        if "output_format" in conf["main"]:
-            output_format = conf["main"]["output_format"]
-            if output_format not in AVAILABLE_OUTPUT_FORMAT:
-                raise Exception("output_format '{}' not available. Allowed values are '{}'".format(output_format, AVAILABLE_OUTPUT_FORMAT))
-
-        ##define the section_names for each feature
-        feature_section_names = [name + "_func_args" for name in features_list]
-
-        features_kwarg_dict = {}
-        for i in range(0, len(features_list)):
-            section_name = feature_section_names[i]
-            # section does not exist. use default
-            if not section_name in conf:
-                features_kwarg_dict[features_list[i]] = {}
-                continue
-            # section exist. regist visit
+        '''
+        check features_to_use. Must have the str "all" to select all the features,
+        or have a sequence with the features name to use
+        '''
+        global features_dict
+        if isinstance(features_to_use, str):
+            if features_to_use != "all":
+                raise Exception("if features_to_use is a str datatype, its value must be a \"all\"")
             else:
-                sections_to_visit.remove(section_name)
-            features_kwarg_dict[features_list[i]] = dict(conf[section_name])
+                features_to_use = set(features_dict.keys())
+        elif isinstance(features_to_use, (list, tuple, set)):
+            features_to_use = set(features_to_use) # convert to list
+            wrong_features = [ feature_name for feature_name in features_to_use if feature_name not in features_dict ]
+            if len(wrong_features) != 0:
+                raise Exception("features {} do not exist. Allowed features are {}".format(wrong_features,
+                                                                                       list(features_dict.keys())))
+        else:
+            raise Exception("features_to_use should be a dict, tuple, set datatype, "
+                            "or the str \"all\" to select all features")
 
-        ## check if all sections were visited
-        if  len(sections_to_visit) != 0:
-            raise Exception("There is a problem in the config file. The following sections were not visited '{}."
-                            "Correct config file".format(sections_to_visit))
+        # check output format
+        if output_format not in AVAILABLE_OUTPUT_FORMAT:
+                raise Exception("output_format '{}' not available. Allowed values are '{}'"
+                                .format(output_format, AVAILABLE_OUTPUT_FORMAT))
 
-        self._config_features = features_list
-        self._config_output_format = output_format
-        self._config_features_kwarg_dict = features_kwarg_dict
-        self._configured_by_file = True
+        # check if kwargs contains all function arguments for each feature function, and if their values type is a dict.
+        required_keys_from_kwargs = ["{}_func_args".format(feature_name) for feature_name in features_to_use]
+        missing_keys_from_kwargs  = [ key for key in required_keys_from_kwargs if key not in kwargs.keys()]
+        if len(missing_keys_from_kwargs) != 0:
+            raise Exception(" Key args {} were not passed to the function".format(missing_keys_from_kwargs))
+        not_dict = [key for key in required_keys_from_kwargs if not isinstance(kwargs[key], dict)]
+        if len(not_dict) != 0:
+            raise Exception(" Keys of {} kwargs must be a dictionary (can be an empty dictionary)".format(not_dict))
+
+        self._config_features            = features_to_use
+        self._config_output_format       = output_format
+        self._config_features_functions_kwarg_dict = {feature_name: kwargs["{}_func_args".format(feature_name)]
+                                                      for feature_name in features_to_use}
+        self._configured = True
 
     def reset_config(self):
         self._config_features = None
         self._config_output_format = None
-        self._config_features_kwarg_dict = None
-        self._configured_by_file = False
+        self._config_features_functions_kwarg_dict = None
+        self._configured = False
 
     def is_configured_by_file(self):
-        return  self._configured_by_file
+        return  self._configured
 
     def _format_according_configuration(self, features_value_dict):
 
@@ -138,19 +108,20 @@ class AudioFeatureExtractor():
                 formated_features_value_dict.pop("mfcc", None)
                 for i in range(1, n_dim+1):
                     formated_features_value_dict["mfcc_" + str(i)] = features_value_dict["mfcc"][i-1]
-            ## sort the keys
+            # sort the keys
             return {key: formated_features_value_dict[key] for key in sorted(formated_features_value_dict.keys())}
 
     def compute_features_by_config(self):
-        if not self._configured_by_file:
+        global features_dict
+        if not self._configured:
             raise Exception("FeatureExtractor instance is not configured")
 
         # get the list with the functions to be run
-        features_func_list = [features_dict[feature_name] for feature_name in self._config_features]
+
         features_values_dict = dict()
-        for i in range(0, len(self._config_features)):
-            feature_name = self._config_features[i]
-            features_values_dict[feature_name] = features_func_list[i](self, **self._config_features_kwarg_dict[feature_name])
+        for feature_name in self._config_features:
+            feature_kwarg_dict = self._config_features_functions_kwarg_dict[feature_name]
+            features_values_dict[feature_name] = features_dict[feature_name](self, **feature_kwarg_dict)
 
         features_values_dict = self._format_according_configuration(features_values_dict)
         return features_values_dict
@@ -226,5 +197,8 @@ if __name__=="__main__":
     extractor.load_audio_file(audio_file_path)
     extractor.compute_spectrogram(True)
 
-    extractor.config_by_file(config_file_path)
+    extractor.config(("mfcc", "zero_cross_rate"), mfcc_func_args={"n_mfcc":13, "pooling":"mean"},
+                     zero_cross_rate_func_args={})
+
     features = extractor.compute_features_by_config()
+    features
