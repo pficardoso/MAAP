@@ -8,6 +8,7 @@ from src.MAAP.native.AudioReader import AudioReader
 DEFAULT_OUTPUT_FORMAT = 'dict_key_per_feature'
 AVAILABLE_OUTPUT_FORMAT = ['dict_key_per_feature', 'dict_key_per_feature_dim']
 AVAILABLE_KEYS_MAIN_SECTION_CONFIG = ["features", "output_format"] # module config parser is case insensitive
+N_MFCC_DEFAULT = 20
 
 features_dict = dict()
 
@@ -86,6 +87,7 @@ class AudioFeatureExtractor():
         self._config_features_functions_kwarg_dict = {feature_name: kwargs["{}_func_args".format(feature_name)]
                                                       for feature_name in features_to_use}
         self._configured = True
+        self._prepare_output_dict_format()
 
     def reset_config(self):
         self._config_features = None
@@ -96,20 +98,30 @@ class AudioFeatureExtractor():
     def is_configured_by_file(self):
         return  self._configured
 
-    def _format_according_configuration(self, features_value_dict):
+    def _prepare_output_dict_format(self):
+        self._config_output_feature_fetch_direct  = self._config_features.copy()
+        self._config_output_feature_fetch_iterate = list()
 
         if self._config_output_format == "dict_key_per_feature":
-            return features_value_dict
+            self._config_output_dict =  {feature_name: None for feature_name in self._config_features}
+            return
 
         if self._config_output_format == "dict_key_per_feature_dim":
-            formated_features_value_dict = features_value_dict.copy()
-            if "mfcc" in features_value_dict:
-                n_dim = features_value_dict["mfcc"].shape[0]
-                formated_features_value_dict.pop("mfcc", None)
-                for i in range(1, n_dim+1):
-                    formated_features_value_dict["mfcc_" + str(i)] = features_value_dict["mfcc"][i-1]
+            config_features = list(self._config_features.copy())
+            if "mfcc" in self._config_features:
+                self._config_output_feature_fetch_direct.remove("mfcc")
+
+                config_features.remove("mfcc")
+                if "n_mfcc" in self._config_features_functions_kwarg_dict["mfcc"].keys():
+                    n_dim = self._config_features_functions_kwarg_dict["mfcc"]["n_mfcc"]
+                else:
+                    n_dim = N_MFCC_DEFAULT
+                self._config_output_feature_fetch_iterate.append(("mfcc", 1, n_dim+1))
+                for i in range(1, n_dim + 1):
+                    config_features.append("mfcc_" + str(i))
             # sort the keys
-            return {key: formated_features_value_dict[key] for key in sorted(formated_features_value_dict.keys())}
+            self._config_output_dict = {key: None for key in sorted(config_features)}
+            return
 
     def compute_features_by_config(self):
         global features_dict
@@ -123,8 +135,16 @@ class AudioFeatureExtractor():
             feature_kwarg_dict = self._config_features_functions_kwarg_dict[feature_name]
             features_values_dict[feature_name] = features_dict[feature_name](self, **feature_kwarg_dict)
 
-        features_values_dict = self._format_according_configuration(features_values_dict)
-        return features_values_dict
+        for feature_name in self._config_output_feature_fetch_direct:
+            self._config_output_dict[feature_name] = features_values_dict[feature_name]
+
+        for feature_name, start_i, final_i in self._config_output_feature_fetch_iterate:
+            i=0
+            for j in range(start_i, final_i):
+                self._config_output_dict["{}_{}".format(feature_name, j)] = features_values_dict[feature_name][i]
+                i+=1
+
+        return self._config_output_dict
 
     def compute_all_features(self):
         return {feature_name: feature_function(self) for feature_name, feature_function in features_dict.items()}
@@ -177,7 +197,7 @@ class AudioFeatureExtractor():
         return self._make_poling_array(rol, pooling)
 
     @audio_feature("mfcc")
-    def compute_feature_mfcc(self, n_mfcc=20, pooling=None):
+    def compute_feature_mfcc(self, n_mfcc=N_MFCC_DEFAULT, pooling=None):
         ## from config files, values are fetched as string. This n_mfcc must be converted to int
         n_mfcc = int(n_mfcc)
         mfccs = librosa.feature.mfcc(self.y, self.sample_rate, n_mfcc=n_mfcc)
@@ -197,7 +217,7 @@ if __name__=="__main__":
     extractor.load_audio_file(audio_file_path)
     extractor.compute_spectrogram(True)
 
-    extractor.config(("mfcc", "zero_cross_rate"), mfcc_func_args={"n_mfcc":13, "pooling":"mean"},
+    extractor.config(("mfcc", "zero_cross_rate"), output_format="dict_key_per_feature_dim", mfcc_func_args={"n_mfcc":13, "pooling":"mean"},
                      zero_cross_rate_func_args={})
 
     features = extractor.compute_features_by_config()
