@@ -1,1 +1,1 @@
-# MAAP - Module for Audio Acqusition and Processing
+# MAAP - Module for Audio Acquisition and Processing
