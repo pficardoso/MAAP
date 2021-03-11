@@ -162,10 +162,10 @@ class AudioFeatureExtractor():
 
         raise Exception("Pooling strategy '{}' is not valid".format(pooling_strategy))
 
-    @audio_feature("spectrogram")
-    def compute_spectrogram(self, return_in_db=True, plot=False, pooling=None):
+    @audio_feature("spectrogram_magnitude")
+    def compute_spectrogram_magnitude(self, return_in_db=True, plot=False, pooling=None):
         # And compute the spectrogram magnitude and phase
-        S_full, phase = librosa.magphase(librosa.stft(self.y))
+        S_full, _ = librosa.magphase(librosa.stft(self.y))
 
         if plot:
             # Plot the spectrum
@@ -176,9 +176,9 @@ class AudioFeatureExtractor():
             plt.show()
 
         if return_in_db:
-            return librosa.amplitude_to_db(S_full), phase
+            return librosa.amplitude_to_db(S_full)
         else:
-            return S_full, phase
+            return S_full
 
     @audio_feature("zero_cross_rate")
     def compute_feature_zero_cross_rate(self, pooling=None):
