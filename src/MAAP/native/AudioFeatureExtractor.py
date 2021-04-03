@@ -3,19 +3,19 @@ import numpy as np
 import matplotlib.pyplot as plt
 from src.MAAP.native.AudioSignal import AudioSignal
 from src.MAAP.native.AudioReader import AudioReader
-
+from src.MAAP.native.AudioFeature import AudioFeature
 
 DEFAULT_OUTPUT_FORMAT = 'dict_key_per_feature'
 AVAILABLE_OUTPUT_FORMAT = ['dict_key_per_feature', 'dict_key_per_feature_dim']
 AVAILABLE_KEYS_MAIN_SECTION_CONFIG = ["features", "output_format"] # module config parser is case insensitive
 N_MFCC_DEFAULT = 20
 
-features_dict = dict()
+compute_feature_functions_dict = dict()
 
 
 def audio_feature(feature_name):
     def decorate(compute_feature_function):
-        features_dict[feature_name] = compute_feature_function
+        compute_feature_functions_dict[feature_name] = compute_feature_function
         return compute_feature_function
     return decorate
 
@@ -28,7 +28,7 @@ class AudioFeatureExtractor():
         self.audioSignal = None
         self.audio_file_path = None
         self._config_features = None
-        self._config_output_format = None
+        self._config_audio_feature_output = AudioFeature()
         self._config_features_functions_kwarg_dict = None
         self._configured = False
 
@@ -47,23 +47,23 @@ class AudioFeatureExtractor():
         self.sample_rate = self.audioSignal.get_sample_rate()
 
     def config(self, features_to_use, output_format=DEFAULT_OUTPUT_FORMAT, **kwargs):
-
+        self.reset_config()
         '''
         check features_to_use. Must have the str "all" to select all the features,
         or have a sequence with the features name to use
         '''
-        global features_dict
+        global compute_feature_functions_dict
         if isinstance(features_to_use, str):
             if features_to_use != "all":
                 raise Exception("if features_to_use is a str datatype, its value must be a \"all\"")
             else:
-                features_to_use = set(features_dict.keys())
+                features_to_use = set(compute_feature_functions_dict.keys())
         elif isinstance(features_to_use, (list, tuple, set)):
             features_to_use = set(features_to_use) # convert to list
-            wrong_features = [ feature_name for feature_name in features_to_use if feature_name not in features_dict ]
+            wrong_features = [feature_name for feature_name in features_to_use if feature_name not in compute_feature_functions_dict]
             if len(wrong_features) != 0:
                 raise Exception("features {} do not exist. Allowed features are {}".format(wrong_features,
-                                                                                       list(features_dict.keys())))
+                                                                                           list(compute_feature_functions_dict.keys())))
         else:
             raise Exception("features_to_use should be a dict, tuple, set datatype, "
                             "or the str \"all\" to select all features")
@@ -82,7 +82,8 @@ class AudioFeatureExtractor():
         if len(not_dict) != 0:
             raise Exception(" Keys of {} kwargs must be a dictionary (can be an empty dictionary)".format(not_dict))
 
-        self._config_features            = features_to_use
+        # The self._config_features must be sorted
+        self._config_features            = sorted(features_to_use)
         self._config_output_format       = output_format
         self._config_features_functions_kwarg_dict = {feature_name: kwargs["{}_func_args".format(feature_name)]
                                                       for feature_name in features_to_use}
@@ -95,6 +96,9 @@ class AudioFeatureExtractor():
         self._config_features_functions_kwarg_dict = None
         self._configured = False
 
+        # also re-instance AudioFeature object, to forget the keys previously inserted
+        self._config_audio_feature_output = AudioFeature()
+
     def is_configured_by_file(self):
         return  self._configured
 
@@ -103,28 +107,32 @@ class AudioFeatureExtractor():
         self._config_output_feature_fetch_iterate = list()
 
         if self._config_output_format == "dict_key_per_feature":
-            self._config_output_dict =  {feature_name: None for feature_name in self._config_features}
+            [self._config_audio_feature_output.setdefault(feature_name, None)
+              for feature_name in self._config_features]
             return
 
         if self._config_output_format == "dict_key_per_feature_dim":
             config_features = list(self._config_features.copy())
             if "mfcc" in self._config_features:
                 self._config_output_feature_fetch_direct.remove("mfcc")
-
                 config_features.remove("mfcc")
+
                 if "n_mfcc" in self._config_features_functions_kwarg_dict["mfcc"].keys():
                     n_dim = self._config_features_functions_kwarg_dict["mfcc"]["n_mfcc"]
                 else:
                     n_dim = N_MFCC_DEFAULT
+
                 self._config_output_feature_fetch_iterate.append(("mfcc", 1, n_dim+1))
                 for i in range(1, n_dim + 1):
                     config_features.append("mfcc_" + str(i))
+
             # sort the keys
-            self._config_output_dict = {key: None for key in sorted(config_features)}
+            [self._config_audio_feature_output.setdefault(feature_name, None)
+             for feature_name in sorted(config_features)]
             return
 
     def compute_features_by_config(self):
-        global features_dict
+        global compute_feature_functions_dict
         if not self._configured:
             raise Exception("FeatureExtractor instance is not configured")
 
@@ -133,21 +141,25 @@ class AudioFeatureExtractor():
         features_values_dict = dict()
         for feature_name in self._config_features:
             feature_kwarg_dict = self._config_features_functions_kwarg_dict[feature_name]
-            features_values_dict[feature_name] = features_dict[feature_name](self, **feature_kwarg_dict)
+            features_values_dict[feature_name] = compute_feature_functions_dict[feature_name](self, **feature_kwarg_dict)
 
         for feature_name in self._config_output_feature_fetch_direct:
-            self._config_output_dict[feature_name] = features_values_dict[feature_name]
+            self._config_audio_feature_output[feature_name] = features_values_dict[feature_name]
 
         for feature_name, start_i, final_i in self._config_output_feature_fetch_iterate:
             i=0
             for j in range(start_i, final_i):
-                self._config_output_dict["{}_{}".format(feature_name, j)] = features_values_dict[feature_name][i]
+                self._config_audio_feature_output["{}_{}".format(feature_name, j)] = features_values_dict[feature_name][i]
                 i+=1
 
-        return self._config_output_dict
+        return self._config_audio_feature_output
 
     def compute_all_features(self):
-        return {feature_name: feature_function(self) for feature_name, feature_function in features_dict.items()}
+        audio_feature = AudioFeature()
+        features = compute_feature_functions_dict.keys()
+        for feature_name in sorted(features):
+            audio_feature[feature_name] = compute_feature_functions_dict[feature_name](self)
+        return audio_feature
 
     @staticmethod
     def _make_poling_array(array : np.array, pooling_strategy=None):
@@ -215,10 +227,17 @@ if __name__=="__main__":
     config_file_path = "/workspace/tmp/test.ini"
     extractor = AudioFeatureExtractor()
     extractor.load_audio_file(audio_file_path)
-    extractor.compute_spectrogram(True)
 
     extractor.config(("mfcc", "zero_cross_rate"), output_format="dict_key_per_feature_dim", mfcc_func_args={"n_mfcc":13, "pooling":"mean"},
                      zero_cross_rate_func_args={})
 
     features = extractor.compute_features_by_config()
+    features
+
+    extractor.config(("mfcc", "zero_cross_rate"), output_format="dict_key_per_feature", mfcc_func_args={"n_mfcc":13, "pooling":"mean"},
+                     zero_cross_rate_func_args={})
+    features = extractor.compute_features_by_config()
+    features
+
+    features = extractor.compute_all_features()
     features
