@@ -1,8 +1,6 @@
 from collections import OrderedDict
 
 
-
-
 class AudioFeature(OrderedDict):
     """
     Basically is a dictionar whose keys will be the name of the feature, and the value will be the features values.
@@ -22,14 +20,9 @@ class AudioFeature(OrderedDict):
 
     """
 
-    def __init__(self,):
+    def __init__(self):
         """Constructor for AudioFeature"""
         super().__init__()
-
-    def __repr__(self):
-        class_name = type(self).__name__
-        features = list(self.keys())
-        return '{}(features={})'.format(class_name, features)
 
     '''
     Setters/Loaders
@@ -38,6 +31,18 @@ class AudioFeature(OrderedDict):
     '''
     Getters
     '''
+    def get_features(self, features=iter, n_mfcc=13):
+        """
+        Import return features with the correct order.
+        """
+        output_dict = dict()
+        for feature_name, feature_value in self.items():
+            if feature_name in features:
+                if feature_name == "mfcc":
+                    output_dict[feature_name] = feature_value[0:n_mfcc]
+                else:
+                    output_dict[feature_name] = feature_value
+        return output_dict
 
     '''
     Workers
@@ -54,5 +59,25 @@ class AudioFeature(OrderedDict):
     '''
     Util methods / Static methods 
     '''
+if __name__=="__main__":
 
+    from src.MAAP.native.AudioFeatureExtractor import AudioFeatureExtractor
 
+    audio_file_path = "../../../audio.files/sir_duke_fast.wav"
+    config_file_path = "/workspace/tmp/test.ini"
+    extractor = AudioFeatureExtractor()
+    extractor.load_audio_file(audio_file_path)
+
+    extractor.config(("mfcc", "zero_cross_rate"), output_format="dict_key_per_feature_dim", mfcc_func_args={"n_mfcc":13, "pooling":"mean"},
+                     zero_cross_rate_func_args={})
+
+    features = extractor.compute_features_by_config()
+    features
+
+    extractor.config(("mfcc", "zero_cross_rate"), output_format="dict_key_per_feature", mfcc_func_args={"n_mfcc":13, "pooling":"mean"},
+                     zero_cross_rate_func_args={})
+    features = extractor.compute_features_by_config()
+    features
+
+    features = extractor.compute_all_features()
+    print(features.get_features(("mfcc")))
