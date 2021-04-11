@@ -92,8 +92,8 @@ class AudioReceiverOutputQueue(queue.Queue):
 class AudioReceiver:
     """"""
 
-    STOP_CAPTURE_MODE_LIST = ["default", "timeout", "by_command"]
-    TIMEOUT_DURATION_DEFAULT = 20  # 20 seconds
+    STOP_CAPTURE_MODE_LIST = ["default","timeout", "by_command","by_parent"]
+    TIMEOUT_DURATION_DEFAULT = 20 # 20 seconds
 
     def __init__(self, channels=1, device_id=0):
         """Constructor for AudioReceiver"""
@@ -198,6 +198,10 @@ class AudioReceiver:
                 if val.strip() == "stop":
                     command_selected = True
 
+        def keep_capturing_by_parent_mode_function():
+            while True:
+                pass
+
         if stop_condition == "timeout":
             time_start = time.time()
             return multiprocessing.Process(
@@ -212,6 +216,9 @@ class AudioReceiver:
                 args=(stop_condition_params,),
                 daemon=True,
             )
+
+        if stop_condition == "by_parent":
+            return multiprocessing.Process(target=keep_capturing_by_parent_mode_function, daemon=False)
 
     @staticmethod
     def _check_segments_duration(segments_duration):
@@ -323,14 +330,9 @@ if __name__ == "__main__":
 
     audioReceiver = AudioReceiver()
 
-    # ------------Test 1-------------
-
-    audioReceiver.start_capture(
-        "timeout", 0.25, buffer_size_seconds=10, timeout_duration=5
-    )
-    print("Start playing audio")
-    audioReceiver._outputQueue.play_queue()
-    print("Stop playing audio")
+    ##------------Test 1-------------
+    audioReceiver.config_capture("by_parent",)
+    audioReceiver.start_capture()
     audioReceiver._outputQueue.plot_queue_signal()
     print(repr(audioReceiver._outputQueue))
     print(repr(audioReceiver))
