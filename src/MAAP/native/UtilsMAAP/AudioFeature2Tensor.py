@@ -1,12 +1,12 @@
 import numpy as np
+
 from src.MAAP.native.AudioFeature import AudioFeature
 
 
-
-class AudioFeature2Tensor():
+class AudioFeature2Tensor:
     """"""
 
-    def __init__(self, audioFeature:AudioFeature):
+    def __init__(self, audioFeature: AudioFeature):
         """Constructor for AudioFeature2Tensor"""
         self.audioFeature = audioFeature
         self.features_name = list(audioFeature.keys())
@@ -15,7 +15,9 @@ class AudioFeature2Tensor():
 
     def translate(self):
         for feature_name in self.features_name:
-            tensor_elements = self._convert_feature_to_tensor_elements(self.audioFeature[feature_name])
+            tensor_elements = self._convert_feature_to_tensor_elements(
+                self.audioFeature[feature_name]
+            )
             self.tensor_elements_buffer.append(tensor_elements)
 
         final_tensor = self._concat_elements_from_buffer()
@@ -48,7 +50,6 @@ class AudioFeature2Tensor():
 
 
 class AudioFeature2Tensor_1D(AudioFeature2Tensor):
-
     def __init__(self, audioFeature: AudioFeature):
         AudioFeature2Tensor.__init__(self, audioFeature)
 
@@ -69,7 +70,6 @@ class AudioFeature2Tensor_1D(AudioFeature2Tensor):
 
 
 class AudioFeature2Tensor_2D(AudioFeature2Tensor):
-
     def __init__(self, audioFeature: AudioFeature):
         AudioFeature2Tensor.__init__(self, audioFeature)
 
@@ -88,14 +88,14 @@ class AudioFeature2Tensor_2D(AudioFeature2Tensor):
     def _concat_elements_from_buffer(self):
         """
         Normally, you desired that first index indexes time. In AudioFeature, if the values is an 2D array, the
-        first index indexes the feature order. Thus, we transpose the matrix to change the last index (which indexes time)
-        to the first
+        first index indexes the feature order. Thus, we transpose the matrix to change the last index
+        (which indexes time) to the first
         :return:
         """
         return np.concatenate(self.tensor_elements_buffer).T
 
 
-def audio_feature_2_tensor(audioFeature : AudioFeature, ndim: int=1 ):
+def audio_feature_2_tensor(audioFeature: AudioFeature, ndim: int = 1):
     """
 
     :param audioFeature:
@@ -103,15 +103,15 @@ def audio_feature_2_tensor(audioFeature : AudioFeature, ndim: int=1 ):
     :return:
     """
 
-    if ndim==1:
+    if ndim == 1:
         return AudioFeature2Tensor_1D(audioFeature).translate()
-    if ndim==2:
+    if ndim == 2:
         return AudioFeature2Tensor_2D(audioFeature).translate()
     else:
         raise Exception("ndim={} is not allowed".format(ndim))
 
 
-if __name__=="__main__":
+if __name__ == "__main__":
 
     from src.MAAP.native.AudioFeatureExtractor import AudioFeatureExtractor
 
@@ -120,24 +120,35 @@ if __name__=="__main__":
     extractor = AudioFeatureExtractor()
     extractor.load_audio_file(audio_file_path)
 
-    extractor.config(("mfcc", "zero_cross_rate"), output_format="dict_key_per_feature_dim", mfcc_func_args={"n_mfcc":13, "pooling":"mean"},
-                     zero_cross_rate_func_args={"pooling":"mean"})
+    extractor.config(
+        ("mfcc", "zero_cross_rate"),
+        output_format="dict_key_per_feature_dim",
+        mfcc_func_args={"n_mfcc": 13, "pooling": "mean"},
+        zero_cross_rate_func_args={"pooling": "mean"},
+    )
 
     features = extractor.compute_features_by_config()
-    tensor = audioFeature2Tensor(features, ndim=1)
+    tensor = AudioFeature2Tensor(features, ndim=1)
 
-
-    extractor.config(("mfcc", "zero_cross_rate"), output_format="dict_key_per_feature_dim", mfcc_func_args={"n_mfcc":13},
-                     zero_cross_rate_func_args={})
+    extractor.config(
+        ("mfcc", "zero_cross_rate"),
+        output_format="dict_key_per_feature_dim",
+        mfcc_func_args={"n_mfcc": 13},
+        zero_cross_rate_func_args={},
+    )
     features = extractor.compute_features_by_config()
-    tensor = audioFeature2Tensor(features, ndim=1)
+    tensor = AudioFeature2Tensor(features, ndim=1)
 
-    extractor.config(("mfcc", "zero_cross_rate"), output_format="dict_key_per_feature", mfcc_func_args={"n_mfcc":13},
-                     zero_cross_rate_func_args={})
+    extractor.config(
+        ("mfcc", "zero_cross_rate"),
+        output_format="dict_key_per_feature",
+        mfcc_func_args={"n_mfcc": 13},
+        zero_cross_rate_func_args={},
+    )
     features = extractor.compute_features_by_config()
-    tensor = audioFeature2Tensor(features, ndim=1)
-    tensor = audioFeature2Tensor(features, ndim=2)
+    tensor = AudioFeature2Tensor(features, ndim=1)
+    tensor = AudioFeature2Tensor(features, ndim=2)
 
     features = extractor.compute_all_features()
-    tensor = audioFeature2Tensor(features, ndim=2)
-    tensor = audioFeature2Tensor(features, ndim=1)
+    tensor = AudioFeature2Tensor(features, ndim=2)
+    tensor = AudioFeature2Tensor(features, ndim=1)
