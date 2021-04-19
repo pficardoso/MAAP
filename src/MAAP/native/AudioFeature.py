@@ -7,8 +7,8 @@ class AudioFeature(OrderedDict):
 
     The AudioFeature is an OrderedDict, this is, remembers the order in which the elements have been inserted.
     This is useful for MAAP.AudioFeatureExtractor. AudiFeatureExtractor analyses a signal and computes its feactures,
-    and returns them as output, using this class instance. It is desired that, for different sets of features selected in
-    AudioFeatureExtractor, the organization of the output is well organized, i.e, their items are sorted. As example,
+    and returns them as output, using this class instance. It is desired that, for different sets of features selected
+    in AudioFeatureExtractor, the organization of the output is well organized, i.e, their items are sorted. As example,
     a sort strategy could be sort the keys alphabetically. The OrderedDict inheritance allows AudioFeatureExtractor
     to control how features are organized in AudioFeature instance. For that, AudiFeatureExtractor will need to
     insert the features with the desired order, in order to AudioFeature remember it.
@@ -24,13 +24,14 @@ class AudioFeature(OrderedDict):
         """Constructor for AudioFeature"""
         super().__init__()
 
-    '''
+    """
     Setters/Loaders
-    '''
+    """
 
-    '''
+    """
     Getters
-    '''
+    """
+
     def get_features(self, features=iter, n_mfcc=13):
         """
         Import return features with the correct order.
@@ -44,22 +45,24 @@ class AudioFeature(OrderedDict):
                     output_dict[feature_name] = feature_value
         return output_dict
 
-    '''
+    """
     Workers
-    '''
+    """
 
-    '''
-    Logic methods 
-    '''
+    """
+    Logic methods
+    """
 
-    '''
+    """
     Checkers
-    '''
+    """
 
-    '''
-    Util methods / Static methods 
-    '''
-if __name__=="__main__":
+    """
+    Util methods / Static methods
+    """
+
+
+if __name__ == "__main__":
 
     from src.MAAP.native.AudioFeatureExtractor import AudioFeatureExtractor
 
@@ -68,14 +71,22 @@ if __name__=="__main__":
     extractor = AudioFeatureExtractor()
     extractor.load_audio_file(audio_file_path)
 
-    extractor.config(("mfcc", "zero_cross_rate"), output_format="dict_key_per_feature_dim", mfcc_func_args={"n_mfcc":13, "pooling":"mean"},
-                     zero_cross_rate_func_args={})
+    extractor.config(
+        ("mfcc", "zero_cross_rate"),
+        output_format="dict_key_per_feature_dim",
+        mfcc_func_args={"n_mfcc": 13, "pooling": "mean"},
+        zero_cross_rate_func_args={},
+    )
 
     features = extractor.compute_features_by_config()
     features
 
-    extractor.config(("mfcc", "zero_cross_rate"), output_format="dict_key_per_feature", mfcc_func_args={"n_mfcc":13, "pooling":"mean"},
-                     zero_cross_rate_func_args={})
+    extractor.config(
+        ("mfcc", "zero_cross_rate"),
+        output_format="dict_key_per_feature",
+        mfcc_func_args={"n_mfcc": 13, "pooling": "mean"},
+        zero_cross_rate_func_args={},
+    )
     features = extractor.compute_features_by_config()
     features
 

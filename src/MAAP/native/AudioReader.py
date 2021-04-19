@@ -1,13 +1,14 @@
+import os
+import re
+
+import numpy as np
+import soundfile as sf
+
 from src.MAAP.native.AudioSignal import AudioSignal
 from src.MAAP.native.AudioWriter import AudioWriter
 
-import numpy as np
-import os
-import sounddevice as sd
-import soundfile as sf
-import re
 
-class AudioReader():
+class AudioReader:
     """"""
 
     def __init__(self, file_paths=None):
@@ -18,7 +19,7 @@ class AudioReader():
             self.set_file_path(file_paths)
 
     @staticmethod
-    def valid_extension(file_path : str):
+    def valid_extension(file_path: str):
         return bool(re.match(".*\.wav$", os.path.basename(file_path)))
 
     def set_file_path(self, file_paths):
@@ -53,17 +54,22 @@ class AudioReader():
 
         set_sr = set(list_sr)
         if len(set_sr) > 1:
-            raise Exception("The sample rates of audios are differents. Audio paths {}".format(self._file_path))
+            raise Exception(
+                "The sample rates of audios are differents. Audio paths {}".format(
+                    self._file_path
+                )
+            )
 
         return AudioSignal(np.concatenate(list_y), list_sr[0])
+
 
 if __name__ == "__main__":
 
     duration = 2
     sample_rate = 44100
-    nr_frames = duration*sample_rate
-    t = np.arange(0,nr_frames,1)
-    y = np.sin(t * np.pi/20000)
+    nr_frames = duration * sample_rate
+    t = np.arange(0, nr_frames, 1)
+    y = np.sin(t * np.pi / 20000)
     audioSignal = AudioSignal(y, sample_rate)
 
     writer = AudioWriter("/tmp/", "1.wav", audioSignal).write()
