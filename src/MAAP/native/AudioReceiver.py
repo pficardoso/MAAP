@@ -95,9 +95,14 @@ class AudioReceiver:
     STOP_CAPTURE_MODE_LIST = ["default", "timeout", "by_command", "by_parent"]
     TIMEOUT_DURATION_DEFAULT = 20  # 20 seconds
 
-    def __init__(self, channels=1, device_id=0):
+    def __init__(self, channels=1, device_id=None):
         """Constructor for AudioReceiver"""
         # Defines device to be used
+        if device_id is None:
+            device_id = sd.default.device[0]
+        if type(device_id) != int:
+            raise Exception("Device ID should be int or None")
+
         self._device_id = device_id
         self._device_info = sd.query_devices(self._device_id, "input")
         self.sr = self._device_info["default_samplerate"]
