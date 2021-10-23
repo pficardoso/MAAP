@@ -1,0 +1,32 @@
+The names of folders should follow the following nomenclature:
+
+	(<house_division>|<event>)_<sound_conditions_environment>
+
+	or
+
+	test_.* -> means that is a folder used for testing
+
+
+Examples for <house_division>:
+	- living room
+	- kitchen
+
+
+Examples for <event>:
+	- cooking
+	- dinner
+
+The possible <sound_conditions_environment> might be:
+
+	- silent -> Most of the capture time is characterized by silent background (this is, no persons, no music, no background noise). Ex: capturing office sound, without anything making noise, but time to time, there is a noise from somewhere or appears someone
+
+	- background.noise -> Most of the time is characterized by no persons talking and no complete silence. Example: office without no one, but if radio playing music
+
+    - music
+
+	- person{0-3} -> environment with persons. A number between 1-3 should be chosen. 1 -> one person; 2 - only two persons; 3 - more than 3 persons
+
+
+Examples of folders:
+1 -  office_background.nose
+2 - dinner_person3
