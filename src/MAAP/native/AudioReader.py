@@ -4,8 +4,8 @@ import re
 import numpy as np
 import soundfile as sf
 
-from src.MAAP.native.AudioSignal import AudioSignal
-from src.MAAP.native.AudioWriter import AudioWriter
+from MAAP.native.AudioSignal import AudioSignal
+from MAAP.native.AudioWriter import AudioWriter
 
 
 class AudioReader:

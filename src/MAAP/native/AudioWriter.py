@@ -3,7 +3,7 @@ import os
 import numpy as np
 import soundfile as sf
 
-from src.MAAP.native.AudioSignal import AudioSignal
+from MAAP.native.AudioSignal import AudioSignal
 
 
 class AudioWriter:

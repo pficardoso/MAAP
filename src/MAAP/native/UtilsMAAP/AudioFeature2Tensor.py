@@ -1,6 +1,6 @@
 import numpy as np
 
-from src.MAAP.native.AudioFeature import AudioFeature
+from MAAP.native.AudioFeature import AudioFeature
 
 
 class AudioFeature2Tensor:

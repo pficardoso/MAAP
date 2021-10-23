@@ -2,9 +2,9 @@ import librosa.display
 import matplotlib.pyplot as plt
 import numpy as np
 
-from src.MAAP.native.AudioFeature import AudioFeature
-from src.MAAP.native.AudioReader import AudioReader
-from src.MAAP.native.AudioSignal import AudioSignal
+from MAAP.native.AudioFeature import AudioFeature
+from MAAP.native.AudioReader import AudioReader
+from MAAP.native.AudioSignal import AudioSignal
 
 DEFAULT_OUTPUT_FORMAT = "dict_key_per_feature"
 AVAILABLE_OUTPUT_FORMAT = ["dict_key_per_feature", "dict_key_per_feature_dim"]

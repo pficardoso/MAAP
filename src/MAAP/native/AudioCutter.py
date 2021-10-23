@@ -1,7 +1,7 @@
 import numpy as np
 
-from src.MAAP.native.AudioReader import AudioReader
-from src.MAAP.native.AudioSignal import AudioSignal
+from MAAP.native.AudioReader import AudioReader
+from MAAP.native.AudioSignal import AudioSignal
 
 START_TIME_DEFAULT = -1
 END_TIME_DEFAULT = -1

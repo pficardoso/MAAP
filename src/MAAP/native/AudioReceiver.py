@@ -7,7 +7,7 @@ import warnings
 
 import sounddevice as sd
 
-from src.MAAP.native.AudioSignal import AudioSignal
+from MAAP.native.AudioSignal import AudioSignal
 
 warnings.simplefilter("always", UserWarning)
 
