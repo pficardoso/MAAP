@@ -4,8 +4,8 @@ import re
 import numpy as np
 import soundfile as sf
 
-from MAAP.native.AudioSignal import AudioSignal
-from MAAP.native.AudioWriter import AudioWriter
+from MAAP.AudioSignal import AudioSignal
+from MAAP.AudioWriter import AudioWriter
 
 
 class AudioReader:
@@ -20,7 +20,7 @@ class AudioReader:
 
     @staticmethod
     def valid_extension(file_path: str):
-        return bool(re.match(".*\.wav$", os.path.basename(file_path)))
+        return bool(re.match(r".*\.wav$", os.path.basename(file_path)))
 
     def set_file_path(self, file_paths):
 

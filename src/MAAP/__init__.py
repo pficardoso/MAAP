@@ -11,16 +11,14 @@ __all__ = [
 
 import sys
 
-# import MAAP.utils
-# from MAAP.utils import func1 func2
-from MAAP.native import utils
-from MAAP.native.AudioCutter import AudioCutter
-from MAAP.native.AudioFeature import AudioFeature
-from MAAP.native.AudioFeatureExtractor import AudioFeatureExtractor
-from MAAP.native.AudioReader import AudioReader
-from MAAP.native.AudioReceiver import AudioReceiver
-from MAAP.native.AudioSignal import AudioSignal
-from MAAP.native.AudioWriter import AudioWriter
+from MAAP import utils
+from MAAP.AudioCutter import AudioCutter
+from MAAP.AudioFeature import AudioFeature
+from MAAP.AudioFeatureExtractor import AudioFeatureExtractor
+from MAAP.AudioReader import AudioReader
+from MAAP.AudioReceiver import AudioReceiver
+from MAAP.AudioSignal import AudioSignal
+from MAAP.AudioWriter import AudioWriter
 
 if sys.version_info[:2] >= (3, 8):
     # TODO: Import directly (no need for conditional) when `python_requires = >= 3.8`

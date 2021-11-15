@@ -64,7 +64,7 @@ class AudioFeature(OrderedDict):
 
 if __name__ == "__main__":
 
-    from src.MAAP.native.AudioFeatureExtractor import AudioFeatureExtractor
+    from MAAP.AudioFeatureExtractor import AudioFeatureExtractor
 
     audio_file_path = "../../../audio.files/sir_duke_fast.wav"
     config_file_path = "/workspace/tmp/test.ini"

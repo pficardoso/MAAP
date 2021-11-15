@@ -1,4 +1,4 @@
-from MAAP.native.AudioSignal import AudioSignal
+from MAAP.AudioSignal import AudioSignal
 
 
 def concat_audio_signals(audio_signals_list: list):

@@ -1,6 +1,6 @@
 import numpy as np
 
-from MAAP.native.AudioFeature import AudioFeature
+from MAAP.AudioFeature import AudioFeature
 
 
 class AudioFeature2Tensor:
@@ -113,7 +113,7 @@ def audio_feature_2_tensor(audioFeature: AudioFeature, ndim: int = 1):
 
 if __name__ == "__main__":
 
-    from src.MAAP.native.AudioFeatureExtractor import AudioFeatureExtractor
+    from MAAP.AudioFeatureExtractor import AudioFeatureExtractor
 
     audio_file_path = "../../../../audio.files/sir_duke_fast.wav"
 
