@@ -7,11 +7,12 @@ __all__ = [
     "AudioSignal",
     "AudioWriter",
     "utils",
+    "threads",
 ]
 
 import sys
 
-from MAAP import utils
+from MAAP import threads, utils
 from MAAP.AudioCutter import AudioCutter
 from MAAP.AudioFeature import AudioFeature
 from MAAP.AudioFeatureExtractor import AudioFeatureExtractor
