@@ -1,4 +1,4 @@
-__all__ = ["AudioReceiverThread", "AudioFeatureExtractor"]
+__all__ = ["AudioReceiverThread", "AudioFeatureExtractorThread"]
 
-from .AudioFeatureExtractorThread import AudioFeatureExtractor
+from .AudioFeatureExtractorThread import AudioFeatureExtractorThread
 from .AudioReceiverThread import AudioReceiverThread
