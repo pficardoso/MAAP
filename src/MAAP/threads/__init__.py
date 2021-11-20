@@ -1,4 +1,4 @@
 __all__ = ["AudioReceiverThread", "AudioFeatureExtractorThread"]
 
-from .AudioFeatureExtractorThread import AudioFeatureExtractorThread
-from .AudioReceiverThread import AudioReceiverThread
+from MAAP.threads.AudioFeatureExtractorThread import AudioFeatureExtractorThread
+from MAAP.threads.AudioReceiverThread import AudioReceiverThread

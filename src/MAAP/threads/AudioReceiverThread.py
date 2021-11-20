@@ -1,4 +1,4 @@
-from MAAP import AudioReceiver
+from MAAP.AudioReceiver import AudioReceiver
 
 
 class AudioReceiverThread:

@@ -1,7 +1,7 @@
 import queue
 import threading
 
-from MAAP import AudioFeatureExtractor
+from MAAP.AudioFeatureExtractor import AudioFeatureExtractor
 
 
 class AudioFeatureExtractorThread(threading.Thread):
@@ -71,7 +71,7 @@ if __name__ == "__main__":
     Used for test purposes
     """
 
-    from MAAP.threads import AudioReceiverThread
+    from MAAP.threads.AudioReceiverThread import AudioReceiverThread
 
     a = AudioReceiverThread()
     a.config_writer(segment_duration=1)
